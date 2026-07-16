@@ -1,0 +1,62 @@
+{
+  "name": "@corkprotocol/operations",
+  "version": "0.1.0",
+  "description": "Deterministic browser-safe Cork operation kernel and capability registry.",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "schemas"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "browser": "./dist/index.js",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./limit-order-lifecycle": {
+      "types": "./dist/limit-order-lifecycle.d.ts",
+      "browser": "./dist/limit-order-lifecycle.js",
+      "import": "./dist/limit-order-lifecycle.js",
+      "default": "./dist/limit-order-lifecycle.js"
+    },
+    "./schemas/v1/common": {
+      "default": "./schemas/v1/common.schema.json"
+    },
+    "./schemas/v1/capabilities": {
+      "default": "./schemas/v1/capabilities.schema.json"
+    },
+    "./schemas/v1/actions": {
+      "default": "./schemas/v1/actions.schema.json"
+    },
+    "./schemas/v1/evidence": {
+      "default": "./schemas/v1/evidence.schema.json"
+    },
+    "./schemas/v1/market-deployment": {
+      "default": "./schemas/v1/market-deployment.schema.json"
+    }
+  },
+  "browser": {
+    "node:buffer": false,
+    "node:crypto": false,
+    "node:fs": false,
+    "node:fs/promises": false,
+    "node:process": false,
+    "node:timers": false
+  },
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:boundaries": "vitest run test/browser-boundary.test.ts",
+    "check": "npm run typecheck && npm run test"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "3.2.6"
+  }
+}

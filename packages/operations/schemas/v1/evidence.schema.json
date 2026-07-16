@@ -1,0 +1,1392 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.cork.tech/operations/v1/evidence.schema.json",
+  "title": "Cork generation, observation, simulation, and verified-market evidence version 1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/generationEvidence"
+    },
+    {
+      "$ref": "#/$defs/rawObservation"
+    },
+    {
+      "$ref": "#/$defs/simulationAttestation"
+    },
+    {
+      "$ref": "#/$defs/verifiedMarket"
+    }
+  ],
+  "$defs": {
+    "uint": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "address": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{40}$"
+    },
+    "bytes": {
+      "type": "string",
+      "pattern": "^0x([0-9a-f]{2})*$"
+    },
+    "bytes32": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "keccak256": {
+      "type": "string",
+      "pattern": "^keccak256:[0-9a-f]{64}$"
+    },
+    "sourceCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "rootKind": {
+      "enum": ["deployment", "signing-policy"]
+    },
+    "generationIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generationId", "generation"],
+      "properties": {
+        "generationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generation": {
+          "$ref": "#/$defs/uint"
+        }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claimId", "claimDigest"],
+      "properties": {
+        "claimId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claimDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "contractBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "address",
+        "deploymentKind",
+        "runtimeCodeHash",
+        "abiArtifactDigest",
+        "sourceCommit",
+        "compiledArtifactDigest",
+        "relationships"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "Permit2",
+            "Bundler3",
+            "CorkAdapter",
+            "CorkPoolManager",
+            "LimitOrderProtocol"
+          ]
+        },
+        "address": {
+          "$ref": "#/$defs/address"
+        },
+        "deploymentKind": {
+          "enum": ["direct", "erc-1967", "beacon"]
+        },
+        "runtimeCodeHash": {
+          "$ref": "#/$defs/keccak256"
+        },
+        "abiArtifactDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "sourceCommit": {
+          "$ref": "#/$defs/sourceCommit"
+        },
+        "compiledArtifactDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "relationships": {
+          "type": "array",
+          "items": true
+        }
+      }
+    },
+    "proxyBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "proxyKind",
+        "proxyCodeHash",
+        "implementationSlot",
+        "implementationAddress",
+        "implementationCodeHash"
+      ],
+      "properties": {
+        "proxyKind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "proxyCodeHash": {
+          "$ref": "#/$defs/keccak256"
+        },
+        "implementationSlot": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "implementationAddress": {
+          "$ref": "#/$defs/address"
+        },
+        "implementationCodeHash": {
+          "$ref": "#/$defs/keccak256"
+        },
+        "adminAddress": {
+          "$ref": "#/$defs/address"
+        },
+        "beaconAddress": {
+          "$ref": "#/$defs/address"
+        },
+        "beaconCodeHash": {
+          "$ref": "#/$defs/keccak256"
+        }
+      }
+    },
+    "deploymentPoolBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "poolId",
+        "collateralAsset",
+        "referenceAsset",
+        "expiryTimestamp",
+        "rateMin",
+        "rateMax",
+        "rateChangePerDayMax",
+        "rateChangeCapacityMax",
+        "rateOracle",
+        "poolManager",
+        "cptAddress",
+        "cstAddress",
+        "limitOrderProtocolAddress",
+        "runtimeCodeHash",
+        "proxyIdentityDigest",
+        "criticalGettersDigest",
+        "cachedCollateralDecimals",
+        "issuanceState",
+        "pauseState",
+        "whitelistState",
+        "adapterWhitelisted",
+        "relationshipDigest"
+      ],
+      "properties": {
+        "poolId": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "collateralAsset": {
+          "$ref": "#/$defs/address"
+        },
+        "referenceAsset": {
+          "$ref": "#/$defs/address"
+        },
+        "expiryTimestamp": {
+          "$ref": "#/$defs/uint"
+        },
+        "rateMin": {
+          "$ref": "#/$defs/uint"
+        },
+        "rateMax": {
+          "$ref": "#/$defs/uint"
+        },
+        "rateChangePerDayMax": {
+          "$ref": "#/$defs/uint"
+        },
+        "rateChangeCapacityMax": {
+          "$ref": "#/$defs/uint"
+        },
+        "rateOracle": {
+          "$ref": "#/$defs/address"
+        },
+        "poolManager": {
+          "$ref": "#/$defs/address"
+        },
+        "cptAddress": {
+          "$ref": "#/$defs/address"
+        },
+        "cstAddress": {
+          "$ref": "#/$defs/address"
+        },
+        "limitOrderProtocolAddress": {
+          "$ref": "#/$defs/address"
+        },
+        "runtimeCodeHash": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "proxyIdentityDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "criticalGettersDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "cachedCollateralDecimals": {
+          "$ref": "#/$defs/uint"
+        },
+        "issuanceState": {
+          "enum": ["not-issued", "issued", "expired"]
+        },
+        "pauseState": {
+          "enum": ["unpaused", "paused"]
+        },
+        "whitelistState": {
+          "enum": ["not-required", "required"]
+        },
+        "adapterWhitelisted": {
+          "type": "boolean"
+        },
+        "relationshipDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "deploymentManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "deploymentId",
+        "chainId",
+        "network",
+        "generation",
+        "status",
+        "validFromBlock",
+        "contracts",
+        "proxies",
+        "pools",
+        "manifestDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "deploymentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "chainId": {
+          "$ref": "#/$defs/uint"
+        },
+        "network": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generation": {
+          "$ref": "#/$defs/uint"
+        },
+        "status": {
+          "enum": ["staged", "active", "retired", "emergency-disabled"]
+        },
+        "validFromBlock": {
+          "$ref": "#/$defs/uint"
+        },
+        "validUntilBlock": {
+          "$ref": "#/$defs/uint"
+        },
+        "contracts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/contractBinding"
+          }
+        },
+        "proxies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/proxyBinding"
+          }
+        },
+        "pools": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/deploymentPoolBinding"
+          }
+        },
+        "manifestDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "generationPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "rootKind",
+        "generationId",
+        "generation",
+        "status",
+        "releaseIdentity",
+        "contentDigest",
+        "claims"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "enum": [
+            "cork.deployment-generation/v1",
+            "cork.signing-policy-generation/v1"
+          ]
+        },
+        "rootKind": {
+          "$ref": "#/$defs/rootKind"
+        },
+        "generationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generation": {
+          "$ref": "#/$defs/uint"
+        },
+        "status": {
+          "enum": ["staged", "active", "retired", "emergency-disabled"]
+        },
+        "releaseIdentity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contentDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/claim"
+          }
+        },
+        "manifest": {
+          "$ref": "#/$defs/deploymentManifest"
+        }
+      }
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "tag", "repositoryCommit", "releasedAt"],
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tag": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repositoryCommit": {
+          "$ref": "#/$defs/sourceCommit"
+        },
+        "releasedAt": {
+          "$ref": "#/$defs/uint"
+        }
+      }
+    },
+    "reviewPromotion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reviewedByRole",
+        "reviewedAt",
+        "promotedByRole",
+        "promotedAt"
+      ],
+      "properties": {
+        "reviewedByRole": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reviewedAt": {
+          "$ref": "#/$defs/uint"
+        },
+        "promotedByRole": {
+          "type": "string",
+          "minLength": 1
+        },
+        "promotedAt": {
+          "$ref": "#/$defs/uint"
+        }
+      }
+    },
+    "publisher": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "repository", "path", "publishedAt"],
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "publishedAt": {
+          "$ref": "#/$defs/uint"
+        }
+      }
+    },
+    "transparency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recordId", "repository", "path", "payloadDigest"],
+      "properties": {
+        "recordId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payloadDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "successor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "const": "successor"
+        },
+        "predecessorGeneration": {
+          "$ref": "#/$defs/uint"
+        },
+        "predecessorPayloadDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "tombstone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "targetGeneration", "priorContentDigest", "reason"],
+      "properties": {
+        "kind": {
+          "const": "tombstone"
+        },
+        "targetGeneration": {
+          "$ref": "#/$defs/uint"
+        },
+        "priorContentDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order",
+        "keyId",
+        "algorithm",
+        "rootKind",
+        "payloadDigest",
+        "signedAt",
+        "signature"
+      ],
+      "properties": {
+        "order": {
+          "$ref": "#/$defs/uint"
+        },
+        "keyId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "algorithm": {
+          "const": "ed25519"
+        },
+        "rootKind": {
+          "$ref": "#/$defs/rootKind"
+        },
+        "payloadDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "signedAt": {
+          "$ref": "#/$defs/uint"
+        },
+        "signature": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "generationEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "rootKind",
+        "repository",
+        "path",
+        "identity",
+        "repositoryCommit",
+        "release",
+        "payload",
+        "payloadDigest",
+        "reviewPromotion",
+        "publisher",
+        "transparency",
+        "continuity",
+        "signatures"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.generation-evidence/v1"
+        },
+        "rootKind": {
+          "$ref": "#/$defs/rootKind"
+        },
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "identity": {
+          "$ref": "#/$defs/generationIdentity"
+        },
+        "repositoryCommit": {
+          "$ref": "#/$defs/sourceCommit"
+        },
+        "release": {
+          "$ref": "#/$defs/release"
+        },
+        "payload": {
+          "$ref": "#/$defs/generationPayload"
+        },
+        "payloadDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "reviewPromotion": {
+          "$ref": "#/$defs/reviewPromotion"
+        },
+        "publisher": {
+          "$ref": "#/$defs/publisher"
+        },
+        "transparency": {
+          "$ref": "#/$defs/transparency"
+        },
+        "continuity": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/successor"
+            },
+            {
+              "$ref": "#/$defs/tombstone"
+            }
+          ]
+        },
+        "signatures": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/signature"
+          }
+        }
+      }
+    },
+    "block": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "blockNumber", "blockHash", "parentBlockHash"],
+      "properties": {
+        "kind": {
+          "const": "independently-pinned"
+        },
+        "blockNumber": {
+          "$ref": "#/$defs/uint"
+        },
+        "blockHash": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "parentBlockHash": {
+          "$ref": "#/$defs/bytes32"
+        }
+      }
+    },
+    "observationFailure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "retryable"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "rawObservationSuccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "kind",
+        "providerId",
+        "administrationId",
+        "sourceId",
+        "requestDigest",
+        "sourceCommit",
+        "sourceSchemaDigest",
+        "observedAt",
+        "value"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.raw-observation/v1"
+        },
+        "kind": {
+          "const": "success"
+        },
+        "providerId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "administrationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requestDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "sourceCommit": {
+          "$ref": "#/$defs/sourceCommit"
+        },
+        "sourceSchemaDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "observedAt": {
+          "$ref": "#/$defs/uint"
+        },
+        "block": {
+          "$ref": "#/$defs/block"
+        },
+        "value": true
+      }
+    },
+    "rawObservationFailure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "kind",
+        "providerId",
+        "administrationId",
+        "sourceId",
+        "requestDigest",
+        "sourceCommit",
+        "sourceSchemaDigest",
+        "observedAt",
+        "failure"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.raw-observation/v1"
+        },
+        "kind": {
+          "const": "failure"
+        },
+        "providerId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "administrationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requestDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "sourceCommit": {
+          "$ref": "#/$defs/sourceCommit"
+        },
+        "sourceSchemaDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "observedAt": {
+          "$ref": "#/$defs/uint"
+        },
+        "block": {
+          "$ref": "#/$defs/block"
+        },
+        "failure": {
+          "$ref": "#/$defs/observationFailure"
+        }
+      }
+    },
+    "rawObservation": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/rawObservationSuccess"
+        },
+        {
+          "$ref": "#/$defs/rawObservationFailure"
+        }
+      ]
+    },
+    "coreBuild": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["packageVersion", "sourceCommit", "schemaDigest"],
+      "properties": {
+        "packageVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceCommit": {
+          "$ref": "#/$defs/sourceCommit"
+        },
+        "schemaDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "deploymentGeneration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deploymentId", "generation", "payloadDigest"],
+      "properties": {
+        "deploymentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generation": {
+          "$ref": "#/$defs/uint"
+        },
+        "payloadDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "frozenBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "value"],
+      "properties": {
+        "field": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": true
+      }
+    },
+    "externallyOwnedAccountWrapper": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "from"],
+      "properties": {
+        "kind": {
+          "const": "externally-owned-account"
+        },
+        "from": {
+          "$ref": "#/$defs/address"
+        }
+      }
+    },
+    "safeWrapper": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "safeAddress", "nonce", "safeTxHash"],
+      "properties": {
+        "kind": {
+          "const": "safe"
+        },
+        "safeAddress": {
+          "$ref": "#/$defs/address"
+        },
+        "nonce": {
+          "$ref": "#/$defs/uint"
+        },
+        "safeTxHash": {
+          "$ref": "#/$defs/bytes32"
+        }
+      }
+    },
+    "frozenExecution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "sender",
+        "target",
+        "value",
+        "calldata",
+        "payloadDigest",
+        "executionDigest",
+        "deploymentGeneration",
+        "currentBindings",
+        "accountWrapper"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.frozen-execution/v1"
+        },
+        "sender": {
+          "$ref": "#/$defs/address"
+        },
+        "target": {
+          "$ref": "#/$defs/address"
+        },
+        "value": {
+          "$ref": "#/$defs/uint"
+        },
+        "calldata": {
+          "$ref": "#/$defs/bytes"
+        },
+        "payloadDigest": {
+          "$ref": "#/$defs/keccak256"
+        },
+        "executionDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "deploymentGeneration": {
+          "$ref": "#/$defs/deploymentGeneration"
+        },
+        "currentBindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/frozenBinding"
+          }
+        },
+        "accountWrapper": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/externallyOwnedAccountWrapper"
+            },
+            {
+              "$ref": "#/$defs/safeWrapper"
+            }
+          ]
+        }
+      }
+    },
+    "simulationBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockNumber", "blockHash"],
+      "properties": {
+        "blockNumber": {
+          "$ref": "#/$defs/uint"
+        },
+        "blockHash": {
+          "$ref": "#/$defs/bytes32"
+        }
+      }
+    },
+    "simulationReason": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "simulationRemediation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "message"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "simulationSuccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "traceDigest",
+        "gasUsed",
+        "callResultDigests",
+        "deltasDigest",
+        "assertionDigests"
+      ],
+      "properties": {
+        "status": {
+          "const": "success"
+        },
+        "traceDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "gasUsed": {
+          "$ref": "#/$defs/uint"
+        },
+        "callResultDigests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sha256"
+          }
+        },
+        "deltasDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "assertionDigests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sha256"
+          }
+        }
+      }
+    },
+    "simulationRevert": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "revertData"],
+      "properties": {
+        "status": {
+          "const": "revert"
+        },
+        "revertData": {
+          "$ref": "#/$defs/bytes"
+        },
+        "decodedReason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "simulationUnavailable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reason", "remediation"],
+      "properties": {
+        "status": {
+          "const": "unavailable"
+        },
+        "reason": {
+          "$ref": "#/$defs/simulationReason"
+        },
+        "remediation": {
+          "$ref": "#/$defs/simulationRemediation"
+        }
+      }
+    },
+    "simulationAttestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "producerBuild",
+        "providerIds",
+        "simulatedAt",
+        "execution",
+        "outcome",
+        "attestationDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.simulation-attestation/v1"
+        },
+        "producerBuild": {
+          "$ref": "#/$defs/coreBuild"
+        },
+        "providerIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "block": {
+          "$ref": "#/$defs/simulationBlock"
+        },
+        "simulatedAt": {
+          "$ref": "#/$defs/uint"
+        },
+        "execution": {
+          "$ref": "#/$defs/frozenExecution"
+        },
+        "outcome": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/simulationSuccess"
+            },
+            {
+              "$ref": "#/$defs/simulationRevert"
+            },
+            {
+              "$ref": "#/$defs/simulationUnavailable"
+            }
+          ]
+        },
+        "attestationDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "quorumBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceId",
+        "requestDigest",
+        "sourceCommit",
+        "sourceSchemaDigest",
+        "blockNumber",
+        "blockHash",
+        "parentBlockHash",
+        "observedAt",
+        "providerIds",
+        "administrationIds"
+      ],
+      "properties": {
+        "sourceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requestDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "sourceCommit": {
+          "$ref": "#/$defs/sourceCommit"
+        },
+        "sourceSchemaDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "blockNumber": {
+          "$ref": "#/$defs/uint"
+        },
+        "blockHash": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "parentBlockHash": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "observedAt": {
+          "$ref": "#/$defs/uint"
+        },
+        "providerIds": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "administrationIds": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "marketTuple": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "poolId",
+        "collateralAsset",
+        "referenceAsset",
+        "expiryTimestamp",
+        "rateMin",
+        "rateMax",
+        "rateChangePerDayMax",
+        "rateChangeCapacityMax",
+        "rateOracle"
+      ],
+      "properties": {
+        "poolId": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "collateralAsset": {
+          "$ref": "#/$defs/address"
+        },
+        "referenceAsset": {
+          "$ref": "#/$defs/address"
+        },
+        "expiryTimestamp": {
+          "$ref": "#/$defs/uint"
+        },
+        "rateMin": {
+          "$ref": "#/$defs/uint"
+        },
+        "rateMax": {
+          "$ref": "#/$defs/uint"
+        },
+        "rateChangePerDayMax": {
+          "$ref": "#/$defs/uint"
+        },
+        "rateChangeCapacityMax": {
+          "$ref": "#/$defs/uint"
+        },
+        "rateOracle": {
+          "$ref": "#/$defs/address"
+        }
+      }
+    },
+    "marketDeploymentFacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "poolManager",
+        "cptAddress",
+        "cstAddress",
+        "limitOrderProtocolAddress",
+        "runtimeCodeHash",
+        "proxyIdentityDigest",
+        "criticalGettersDigest",
+        "cachedCollateralDecimals",
+        "issuanceState",
+        "pauseState",
+        "whitelistState"
+      ],
+      "properties": {
+        "poolManager": {
+          "$ref": "#/$defs/address"
+        },
+        "cptAddress": {
+          "$ref": "#/$defs/address"
+        },
+        "cstAddress": {
+          "$ref": "#/$defs/address"
+        },
+        "limitOrderProtocolAddress": {
+          "$ref": "#/$defs/address"
+        },
+        "runtimeCodeHash": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "proxyIdentityDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "criticalGettersDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "cachedCollateralDecimals": {
+          "$ref": "#/$defs/uint"
+        },
+        "issuanceState": {
+          "enum": ["not-issued", "issued", "expired"]
+        },
+        "pauseState": {
+          "enum": ["unpaused", "paused"]
+        },
+        "whitelistState": {
+          "enum": ["not-required", "required"]
+        }
+      }
+    },
+    "consistencyCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "consistent"],
+      "properties": {
+        "field": {
+          "enum": [
+            "chainId",
+            "poolId",
+            "collateralAsset",
+            "referenceAsset",
+            "expiryTimestamp",
+            "rateMin",
+            "rateMax",
+            "rateChangePerDayMax",
+            "rateChangeCapacityMax",
+            "rateOracle",
+            "poolManager",
+            "cptAddress",
+            "cstAddress",
+            "limitOrderProtocolAddress",
+            "runtimeCodeHash",
+            "proxyIdentityDigest",
+            "criticalGettersDigest",
+            "cachedCollateralDecimals",
+            "issuanceState",
+            "pauseState",
+            "whitelistState"
+          ]
+        },
+        "consistent": {
+          "const": true
+        }
+      }
+    },
+    "verifiedMarketSuccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "outcome",
+        "chainId",
+        "deploymentId",
+        "manifestGeneration",
+        "manifestDigest",
+        "sourcePayloadDigest",
+        "selectedSourceItemIdentity",
+        "selectedSourceItemDigest",
+        "observation",
+        "market",
+        "deploymentFacts",
+        "consistencyChecks",
+        "verifiedMarketDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.verified-market/v1"
+        },
+        "outcome": {
+          "const": "verified"
+        },
+        "chainId": {
+          "$ref": "#/$defs/uint"
+        },
+        "deploymentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manifestGeneration": {
+          "$ref": "#/$defs/uint"
+        },
+        "manifestDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "sourcePayloadDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "selectedSourceItemIdentity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "selectedSourceItemDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "observation": {
+          "$ref": "#/$defs/quorumBinding"
+        },
+        "market": {
+          "$ref": "#/$defs/marketTuple"
+        },
+        "deploymentFacts": {
+          "$ref": "#/$defs/marketDeploymentFacts"
+        },
+        "consistencyChecks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/consistencyCheck"
+          }
+        },
+        "verifiedMarketDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "verifiedMarketConflict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "outcome",
+        "code",
+        "conflicts",
+        "verifiedMarketDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.verified-market/v1"
+        },
+        "outcome": {
+          "const": "conflict"
+        },
+        "code": {
+          "enum": [
+            "INPUT_INVALID",
+            "EVIDENCE_INVALID",
+            "EVIDENCE_INACTIVE",
+            "QUORUM_FAILED",
+            "SAME_BLOCK_REQUIRED",
+            "SOURCE_CONFLICT",
+            "DEPLOYMENT_CLAIM_MISSING"
+          ]
+        },
+        "conflicts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "verifiedMarketDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "verifiedMarket": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/verifiedMarketSuccess"
+        },
+        {
+          "$ref": "#/$defs/verifiedMarketConflict"
+        }
+      ]
+    }
+  }
+}

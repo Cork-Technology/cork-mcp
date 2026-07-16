@@ -1,0 +1,36 @@
+{
+  "name": "@corkprotocol/gateway",
+  "version": "0.1.0",
+  "description": "Transport-neutral hosted router and controls for Cork operation packages.",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --no-cache",
+    "check": "npm run typecheck && npm run test"
+  },
+  "dependencies": {
+    "@corkprotocol/operations": "0.1.0",
+    "@corkprotocol/operations-node": "0.1.0",
+    "@modelcontextprotocol/sdk": "1.29.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.16.0",
+    "typescript": "5.9.3",
+    "vitest": "3.2.6"
+  }
+}

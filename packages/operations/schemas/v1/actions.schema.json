@@ -1,0 +1,1386 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.cork.tech/operations/v1/actions.schema.json",
+  "title": "Cork action, authority, Safe, and direct package foundations version 1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/authoritySufficient"
+    },
+    {
+      "$ref": "#/$defs/authorityPrerequisite"
+    },
+    {
+      "$ref": "#/$defs/authorityRevocation"
+    },
+    {
+      "$ref": "#/$defs/preparedUnwind"
+    },
+    {
+      "$ref": "#/$defs/finalizedUnwind"
+    },
+    {
+      "$ref": "#/$defs/exactSpendAction"
+    },
+    {
+      "$ref": "#/$defs/cappedInputUnavailable"
+    },
+    {
+      "$ref": "#/$defs/safePermitAuthorization"
+    },
+    {
+      "$ref": "#/$defs/safeExecutionWrapper"
+    },
+    {
+      "$ref": "#/$defs/directPackageCandidate"
+    }
+  ],
+  "$defs": {
+    "uint": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "address": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{40}$"
+    },
+    "bytes": {
+      "type": "string",
+      "pattern": "^0x([0-9a-f]{2})*$"
+    },
+    "bytes32": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "keccak256": {
+      "type": "string",
+      "pattern": "^keccak256:[0-9a-f]{64}$"
+    },
+    "sourceCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "account": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "address"],
+      "properties": {
+        "kind": {
+          "enum": ["externally-owned-account", "safe"]
+        },
+        "address": {
+          "$ref": "#/$defs/address"
+        }
+      }
+    },
+    "shareRelationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "claim",
+        "deploymentId",
+        "generation",
+        "status",
+        "chainId",
+        "poolId",
+        "tokenRole",
+        "token",
+        "permit2",
+        "evidenceDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.manifest-share-token/v1"
+        },
+        "claim": {
+          "const": "manifest-verified-share-token-relationship"
+        },
+        "deploymentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generation": {
+          "$ref": "#/$defs/uint"
+        },
+        "status": {
+          "enum": ["active", "retired", "emergency-disabled"]
+        },
+        "chainId": {
+          "$ref": "#/$defs/uint"
+        },
+        "poolId": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "tokenRole": {
+          "enum": ["cpt", "cst"]
+        },
+        "token": {
+          "$ref": "#/$defs/address"
+        },
+        "permit2": {
+          "$ref": "#/$defs/address"
+        },
+        "evidenceDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "authorityTransaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["to", "value", "calldata", "calldataDigest"],
+      "properties": {
+        "to": {
+          "$ref": "#/$defs/address"
+        },
+        "value": {
+          "const": "0"
+        },
+        "calldata": {
+          "$ref": "#/$defs/bytes"
+        },
+        "calldataDigest": {
+          "$ref": "#/$defs/keccak256"
+        }
+      }
+    },
+    "delivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "account"],
+      "properties": {
+        "kind": {
+          "enum": ["externally-owned-account", "safe"]
+        },
+        "account": {
+          "$ref": "#/$defs/address"
+        }
+      }
+    },
+    "authoritySufficient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "outcome",
+        "relationship",
+        "owner",
+        "observedAllowance",
+        "requiredAllowance",
+        "authorityDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.authority/v1"
+        },
+        "outcome": {
+          "const": "sufficient"
+        },
+        "relationship": {
+          "$ref": "#/$defs/shareRelationship"
+        },
+        "owner": {
+          "$ref": "#/$defs/account"
+        },
+        "observedAllowance": {
+          "$ref": "#/$defs/uint"
+        },
+        "requiredAllowance": {
+          "$ref": "#/$defs/uint"
+        },
+        "authorityDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "prerequisiteConfirmation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["receipt", "freshAllowance"],
+      "properties": {
+        "receipt": {
+          "const": "exact-canonical"
+        },
+        "freshAllowance": {
+          "$ref": "#/$defs/uint"
+        }
+      }
+    },
+    "disclosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "presentedBeforeAuthorization",
+        "code",
+        "scope",
+        "persistence",
+        "revocationAction"
+      ],
+      "properties": {
+        "presentedBeforeAuthorization": {
+          "const": true
+        },
+        "code": {
+          "const": "standing-permit2-allowance"
+        },
+        "scope": {
+          "const": "verified-cork-pool-share"
+        },
+        "persistence": {
+          "const": "owner-revocation"
+        },
+        "revocationAction": {
+          "const": "permit2.revoke"
+        }
+      }
+    },
+    "authorityPrerequisite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "outcome",
+        "terminatesAttempt",
+        "requirementId",
+        "relationship",
+        "owner",
+        "observedAllowance",
+        "requiredAllowance",
+        "targetAllowance",
+        "transaction",
+        "delivery",
+        "confirmation",
+        "disclosure",
+        "authorityDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.authority/v1"
+        },
+        "outcome": {
+          "const": "prerequisite"
+        },
+        "terminatesAttempt": {
+          "const": true
+        },
+        "requirementId": {
+          "enum": ["standing-permit2-cpt", "standing-permit2-cst"]
+        },
+        "relationship": {
+          "$ref": "#/$defs/shareRelationship"
+        },
+        "owner": {
+          "$ref": "#/$defs/account"
+        },
+        "observedAllowance": {
+          "$ref": "#/$defs/uint"
+        },
+        "requiredAllowance": {
+          "$ref": "#/$defs/uint"
+        },
+        "targetAllowance": {
+          "const": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+        },
+        "transaction": {
+          "$ref": "#/$defs/authorityTransaction"
+        },
+        "delivery": {
+          "$ref": "#/$defs/delivery"
+        },
+        "confirmation": {
+          "$ref": "#/$defs/prerequisiteConfirmation"
+        },
+        "disclosure": {
+          "$ref": "#/$defs/disclosure"
+        },
+        "authorityDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "revocationConfirmation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["receipt", "freshAllowance"],
+      "properties": {
+        "receipt": {
+          "const": "exact-canonical"
+        },
+        "freshAllowance": {
+          "const": "0"
+        }
+      }
+    },
+    "authorityRevocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "outcome",
+        "relationship",
+        "owner",
+        "transaction",
+        "delivery",
+        "confirmation",
+        "revocationDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.authority-revocation/v1"
+        },
+        "outcome": {
+          "const": "permit2-revocation"
+        },
+        "relationship": {
+          "$ref": "#/$defs/shareRelationship"
+        },
+        "owner": {
+          "$ref": "#/$defs/account"
+        },
+        "transaction": {
+          "$ref": "#/$defs/authorityTransaction"
+        },
+        "delivery": {
+          "$ref": "#/$defs/delivery"
+        },
+        "confirmation": {
+          "$ref": "#/$defs/revocationConfirmation"
+        },
+        "revocationDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "permitTypedDataDomain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "chainId", "verifyingContract"],
+      "properties": {
+        "name": {
+          "const": "Permit2"
+        },
+        "chainId": {
+          "$ref": "#/$defs/uint"
+        },
+        "verifyingContract": {
+          "$ref": "#/$defs/address"
+        }
+      }
+    },
+    "permittedToken": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["token", "amount"],
+      "properties": {
+        "token": {
+          "$ref": "#/$defs/address"
+        },
+        "amount": {
+          "$ref": "#/$defs/uint"
+        }
+      }
+    },
+    "permitTypedData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "primaryType",
+        "permitted",
+        "spender",
+        "nonce",
+        "deadline"
+      ],
+      "properties": {
+        "domain": {
+          "$ref": "#/$defs/permitTypedDataDomain"
+        },
+        "primaryType": {
+          "const": "PermitTransferFrom"
+        },
+        "permitted": {
+          "$ref": "#/$defs/permittedToken"
+        },
+        "spender": {
+          "$ref": "#/$defs/address"
+        },
+        "nonce": {
+          "$ref": "#/$defs/uint"
+        },
+        "deadline": {
+          "$ref": "#/$defs/uint"
+        }
+      }
+    },
+    "insertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["callIndex", "abiField"],
+      "properties": {
+        "callIndex": {
+          "enum": ["0", "1"]
+        },
+        "abiField": {
+          "const": "signature"
+        }
+      }
+    },
+    "permitAuthorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "tokenRole",
+        "signer",
+        "validationMode",
+        "typedData",
+        "typedDataDigest",
+        "nonce",
+        "wordPosition",
+        "bitPosition",
+        "insertion"
+      ],
+      "properties": {
+        "id": {
+          "enum": ["permit-cpt", "permit-cst"]
+        },
+        "tokenRole": {
+          "enum": ["cpt", "cst"]
+        },
+        "signer": {
+          "$ref": "#/$defs/address"
+        },
+        "validationMode": {
+          "enum": [
+            "externally-owned-account-typed-data",
+            "safe-contract-signature"
+          ]
+        },
+        "typedData": {
+          "$ref": "#/$defs/permitTypedData"
+        },
+        "typedDataDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "nonce": {
+          "$ref": "#/$defs/uint"
+        },
+        "wordPosition": {
+          "$ref": "#/$defs/uint"
+        },
+        "bitPosition": {
+          "$ref": "#/$defs/uint"
+        },
+        "insertion": {
+          "$ref": "#/$defs/insertion"
+        }
+      }
+    },
+    "callTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "to",
+        "value",
+        "functionName",
+        "functionSelector",
+        "arguments",
+        "unresolvedFields",
+        "skipRevert",
+        "callbackHash"
+      ],
+      "properties": {
+        "index": {
+          "$ref": "#/$defs/uint"
+        },
+        "to": {
+          "$ref": "#/$defs/address"
+        },
+        "value": {
+          "const": "0"
+        },
+        "functionName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "functionSelector": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{8}$"
+        },
+        "arguments": {
+          "type": "array",
+          "items": true
+        },
+        "unresolvedFields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "skipRevert": {
+          "const": false
+        },
+        "callbackHash": {
+          "$ref": "#/$defs/bytes32"
+        }
+      }
+    },
+    "frozenCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "to",
+        "value",
+        "functionName",
+        "functionSelector",
+        "arguments",
+        "calldata",
+        "calldataDigest",
+        "skipRevert",
+        "callbackHash"
+      ],
+      "properties": {
+        "index": {
+          "$ref": "#/$defs/uint"
+        },
+        "to": {
+          "$ref": "#/$defs/address"
+        },
+        "value": {
+          "const": "0"
+        },
+        "functionName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "functionSelector": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{8}$"
+        },
+        "arguments": {
+          "type": "array",
+          "items": true
+        },
+        "calldata": {
+          "$ref": "#/$defs/bytes"
+        },
+        "calldataDigest": {
+          "$ref": "#/$defs/keccak256"
+        },
+        "skipRevert": {
+          "const": false
+        },
+        "callbackHash": {
+          "$ref": "#/$defs/bytes32"
+        }
+      }
+    },
+    "unwindConstraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requestedSharesIn",
+        "effectiveSharesIn",
+        "shareQuantum",
+        "minCollateralAssetsOut",
+        "receiver",
+        "transactionValue",
+        "callCount"
+      ],
+      "properties": {
+        "requestedSharesIn": {
+          "$ref": "#/$defs/uint"
+        },
+        "effectiveSharesIn": {
+          "$ref": "#/$defs/uint"
+        },
+        "shareQuantum": {
+          "$ref": "#/$defs/uint"
+        },
+        "minCollateralAssetsOut": {
+          "$ref": "#/$defs/uint"
+        },
+        "receiver": {
+          "$ref": "#/$defs/address"
+        },
+        "transactionValue": {
+          "const": "0"
+        },
+        "callCount": {
+          "const": "3"
+        }
+      }
+    },
+    "preparedUnwind": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "operationId",
+        "intentDigest",
+        "intent",
+        "bindings",
+        "constraints",
+        "authorizations",
+        "callTemplates",
+        "preparedDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.prepared-unwind/v1"
+        },
+        "operationId": {
+          "type": "string",
+          "pattern": "^op_[0-9a-f]{32}$"
+        },
+        "intentDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "intent": true,
+        "bindings": true,
+        "constraints": {
+          "$ref": "#/$defs/unwindConstraints"
+        },
+        "authorizations": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/permitAuthorization"
+          }
+        },
+        "callTemplates": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/callTemplate"
+          }
+        },
+        "preparedDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "signatureArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "signature"],
+      "properties": {
+        "id": {
+          "enum": ["permit-cpt", "permit-cst"]
+        },
+        "signature": {
+          "$ref": "#/$defs/bytes"
+        }
+      }
+    },
+    "bundlerExecution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "sender", "to", "value", "data", "chainId"],
+      "properties": {
+        "kind": {
+          "const": "bundler-call"
+        },
+        "sender": {
+          "$ref": "#/$defs/address"
+        },
+        "to": {
+          "$ref": "#/$defs/address"
+        },
+        "value": {
+          "const": "0"
+        },
+        "data": {
+          "$ref": "#/$defs/bytes"
+        },
+        "chainId": {
+          "$ref": "#/$defs/uint"
+        }
+      }
+    },
+    "unwindExpectedEffects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cptConsumed",
+        "cstConsumed",
+        "minimumCollateralToReceiver",
+        "adapterBalancesReturnToStart"
+      ],
+      "properties": {
+        "cptConsumed": {
+          "$ref": "#/$defs/uint"
+        },
+        "cstConsumed": {
+          "$ref": "#/$defs/uint"
+        },
+        "minimumCollateralToReceiver": {
+          "$ref": "#/$defs/uint"
+        },
+        "adapterBalancesReturnToStart": {
+          "const": true
+        }
+      }
+    },
+    "finalizedUnwind": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "operationId",
+        "intentDigest",
+        "preparedDigest",
+        "finalizedAt",
+        "intent",
+        "bindings",
+        "constraints",
+        "authorizations",
+        "signatureArtifacts",
+        "calls",
+        "bundlerData",
+        "payloadDigest",
+        "execution",
+        "executionDigest",
+        "expectedEffects",
+        "finalizedDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.finalized-unwind/v1"
+        },
+        "operationId": {
+          "type": "string",
+          "pattern": "^op_[0-9a-f]{32}$"
+        },
+        "intentDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "preparedDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "finalizedAt": {
+          "$ref": "#/$defs/uint"
+        },
+        "intent": true,
+        "bindings": true,
+        "constraints": {
+          "$ref": "#/$defs/unwindConstraints"
+        },
+        "authorizations": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/permitAuthorization"
+          }
+        },
+        "signatureArtifacts": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/signatureArtifact"
+          }
+        },
+        "calls": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/frozenCall"
+          }
+        },
+        "bundlerData": {
+          "$ref": "#/$defs/bytes"
+        },
+        "payloadDigest": {
+          "$ref": "#/$defs/keccak256"
+        },
+        "execution": {
+          "$ref": "#/$defs/bundlerExecution"
+        },
+        "executionDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "expectedEffects": {
+          "$ref": "#/$defs/unwindExpectedEffects"
+        },
+        "finalizedDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "fundingProofStatic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "token", "amount", "authorizationDigest"],
+      "properties": {
+        "mode": {
+          "enum": ["token-allowance", "permit2-allowance"]
+        },
+        "token": {
+          "$ref": "#/$defs/address"
+        },
+        "amount": {
+          "$ref": "#/$defs/uint"
+        },
+        "authorizationDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "fundingProofSignature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "token",
+        "amount",
+        "nonce",
+        "deadline",
+        "signature",
+        "authorizationDigest"
+      ],
+      "properties": {
+        "mode": {
+          "const": "permit2-signature"
+        },
+        "token": {
+          "$ref": "#/$defs/address"
+        },
+        "amount": {
+          "$ref": "#/$defs/uint"
+        },
+        "nonce": {
+          "$ref": "#/$defs/uint"
+        },
+        "deadline": {
+          "$ref": "#/$defs/uint"
+        },
+        "signature": {
+          "$ref": "#/$defs/bytes"
+        },
+        "authorizationDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "exactSpendContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deploymentId",
+        "generation",
+        "manifestDigest",
+        "chainId",
+        "poolId",
+        "bundler3",
+        "corkAdapter",
+        "receiver",
+        "deadline",
+        "currentTime",
+        "phase",
+        "paused",
+        "adapterWhitelisted",
+        "funding",
+        "adapterStartingBalancesDigest"
+      ],
+      "properties": {
+        "deploymentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generation": {
+          "$ref": "#/$defs/uint"
+        },
+        "manifestDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "chainId": {
+          "$ref": "#/$defs/uint"
+        },
+        "poolId": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "bundler3": {
+          "$ref": "#/$defs/address"
+        },
+        "corkAdapter": {
+          "$ref": "#/$defs/address"
+        },
+        "receiver": {
+          "$ref": "#/$defs/address"
+        },
+        "deadline": {
+          "$ref": "#/$defs/uint"
+        },
+        "currentTime": {
+          "$ref": "#/$defs/uint"
+        },
+        "phase": {
+          "enum": ["pre-expiry", "post-expiry"]
+        },
+        "paused": {
+          "type": "boolean"
+        },
+        "adapterWhitelisted": {
+          "const": true
+        },
+        "funding": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/fundingProofStatic"
+              },
+              {
+                "$ref": "#/$defs/fundingProofSignature"
+              }
+            ]
+          }
+        },
+        "adapterStartingBalancesDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "profileBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "value"],
+      "properties": {
+        "field": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": true
+      }
+    },
+    "residualPreservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "adapterBalancesReturnToStart",
+        "actionCreatedAllowancesReturnToZero"
+      ],
+      "properties": {
+        "adapterBalancesReturnToStart": {
+          "const": true
+        },
+        "actionCreatedAllowancesReturnToZero": {
+          "const": true
+        }
+      }
+    },
+    "exactSpendAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "profile",
+        "context",
+        "profileBindings",
+        "fundingCalls",
+        "protectedCall",
+        "bundlerData",
+        "payloadDigest",
+        "expectedEffects",
+        "residualPreservation",
+        "reconciliationProjection",
+        "actionDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.exact-spend-action/v1"
+        },
+        "profile": {
+          "enum": [
+            "mint-collateral-in",
+            "mint-paired-shares-out",
+            "repurchase-collateral-in-for-swap",
+            "unwind-collateral-out",
+            "redeem-principal-token-in"
+          ]
+        },
+        "context": {
+          "$ref": "#/$defs/exactSpendContext"
+        },
+        "profileBindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/profileBinding"
+          }
+        },
+        "fundingCalls": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/frozenCall"
+          }
+        },
+        "protectedCall": {
+          "$ref": "#/$defs/frozenCall"
+        },
+        "bundlerData": {
+          "$ref": "#/$defs/bytes"
+        },
+        "payloadDigest": {
+          "$ref": "#/$defs/keccak256"
+        },
+        "expectedEffects": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "residualPreservation": {
+          "$ref": "#/$defs/residualPreservation"
+        },
+        "reconciliationProjection": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "actionDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "cappedError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "retryable"],
+      "properties": {
+        "code": {
+          "const": "CAPPED_INPUT_PROTOCOL_UNAVAILABLE"
+        },
+        "message": {
+          "const": "The exact capped-input onchain protocol is unavailable."
+        },
+        "retryable": {
+          "const": false
+        }
+      }
+    },
+    "cappedInputUnavailable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "capabilityId",
+        "implemented",
+        "activated",
+        "healthy",
+        "callable",
+        "error"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.capped-input-unavailable/v1"
+        },
+        "capabilityId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "implemented": {
+          "const": false
+        },
+        "activated": {
+          "const": false
+        },
+        "healthy": {
+          "const": false
+        },
+        "callable": {
+          "const": false
+        },
+        "error": {
+          "$ref": "#/$defs/cappedError"
+        }
+      }
+    },
+    "safeConfiguration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "safeAddress",
+        "singletonAddress",
+        "singletonCodeHash",
+        "safeVersion",
+        "owners",
+        "threshold",
+        "fallbackHandlerAddress",
+        "fallbackHandlerCodeHash",
+        "guardAddress",
+        "enabledModules",
+        "nonce"
+      ],
+      "properties": {
+        "safeAddress": {
+          "$ref": "#/$defs/address"
+        },
+        "singletonAddress": {
+          "$ref": "#/$defs/address"
+        },
+        "singletonCodeHash": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "safeVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owners": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/address"
+          }
+        },
+        "threshold": {
+          "const": "2"
+        },
+        "fallbackHandlerAddress": {
+          "$ref": "#/$defs/address"
+        },
+        "fallbackHandlerCodeHash": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "guardAddress": {
+          "const": "0x0000000000000000000000000000000000000000"
+        },
+        "enabledModules": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "nonce": {
+          "$ref": "#/$defs/uint"
+        }
+      }
+    },
+    "safeMessage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "permitDigest", "signatureBlob", "validation"],
+      "properties": {
+        "id": {
+          "enum": ["permit-cpt", "permit-cst"]
+        },
+        "permitDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "signatureBlob": {
+          "$ref": "#/$defs/bytes"
+        },
+        "validation": {
+          "const": "eip-1271-magic-0x1626ba7e"
+        }
+      }
+    },
+    "safePermitAuthorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "safeConfiguration",
+        "authorityDigest",
+        "messages",
+        "transactionAuthorization",
+        "authorizationDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.safe-permit-authorization/v1"
+        },
+        "safeConfiguration": {
+          "$ref": "#/$defs/safeConfiguration"
+        },
+        "authorityDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "messages": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/safeMessage"
+          }
+        },
+        "transactionAuthorization": {
+          "const": "caller-owned-not-collected"
+        },
+        "authorizationDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "safeExecutionWrapper": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "safeConfiguration",
+        "authorityDigest",
+        "permitAuthorization",
+        "to",
+        "value",
+        "data",
+        "operation",
+        "safeTxGas",
+        "baseGas",
+        "gasPrice",
+        "gasToken",
+        "refundReceiver",
+        "nonce",
+        "safeTxHash",
+        "transactionAuthorization",
+        "wrapperDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.safe-execution-wrapper/v1"
+        },
+        "safeConfiguration": {
+          "$ref": "#/$defs/safeConfiguration"
+        },
+        "authorityDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "permitAuthorization": {
+          "$ref": "#/$defs/safePermitAuthorization"
+        },
+        "to": {
+          "$ref": "#/$defs/address"
+        },
+        "value": {
+          "const": "0"
+        },
+        "data": {
+          "$ref": "#/$defs/bytes"
+        },
+        "operation": {
+          "const": "call"
+        },
+        "safeTxGas": {
+          "const": "0"
+        },
+        "baseGas": {
+          "const": "0"
+        },
+        "gasPrice": {
+          "const": "0"
+        },
+        "gasToken": {
+          "const": "0x0000000000000000000000000000000000000000"
+        },
+        "refundReceiver": {
+          "const": "0x0000000000000000000000000000000000000000"
+        },
+        "nonce": {
+          "$ref": "#/$defs/uint"
+        },
+        "safeTxHash": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "transactionAuthorization": {
+          "const": "caller-owned-not-collected"
+        },
+        "wrapperDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "packageCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capabilityId",
+        "capabilitySchemaDigest",
+        "capabilityProfileDigest",
+        "vectorSetDigest"
+      ],
+      "properties": {
+        "capabilityId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capabilitySchemaDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "capabilityProfileDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "vectorSetDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "directPackageCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "packageName",
+        "packagePath",
+        "releaseIdentity",
+        "packageArtifactDigest",
+        "sourceCommit",
+        "commonSchemaDigest",
+        "coreBuildDigest",
+        "capabilities",
+        "candidateDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.direct-package-candidate/v1"
+        },
+        "packageName": {
+          "const": "@corkprotocol/operations"
+        },
+        "packagePath": {
+          "type": "string",
+          "pattern": "^/[^\\n]+$"
+        },
+        "releaseIdentity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "packageArtifactDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "sourceCommit": {
+          "$ref": "#/$defs/sourceCommit"
+        },
+        "commonSchemaDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "coreBuildDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/packageCapability"
+          }
+        },
+        "candidateDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}

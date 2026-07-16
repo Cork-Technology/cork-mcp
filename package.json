@@ -1,0 +1,38 @@
+{
+  "name": "@corkprotocol/mcp-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Monorepo foundation for the Cork Protocol Model Context Protocol server and canonical operation packages.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "packageManager": "npm@10.9.8",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0",
+    "npm": ">=10.9.0 <11.0.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "tools/*"
+  ],
+  "scripts": {
+    "check:runtime": "node --input-type=module -e \"const major = Number.parseInt(process.versions.node.split('.')[0], 10); if (major !== 22) { console.error('Node.js 22.x is required; received ' + process.versions.node); process.exit(1); }\"",
+    "clean": "npm run clean --workspaces --if-present && rimraf coverage dist build .turbo",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run typecheck --workspaces --if-present",
+    "format": "prettier --write . --ignore-unknown",
+    "format:check": "prettier --check . --ignore-unknown",
+    "test": "npm run test:unit && npm run test:boundaries",
+    "test:unit": "npm test --workspaces --if-present",
+    "test:boundaries": "npm run test:boundaries --workspaces --if-present",
+    "ci": "npm run check:runtime && npm run format:check && npm run lint && npm run typecheck && npm run build && npm run test"
+  },
+  "devDependencies": {
+    "@types/node": "22.16.0",
+    "eslint": "9.30.1",
+    "prettier": "3.6.2",
+    "rimraf": "6.0.1",
+    "typescript": "5.9.3",
+    "vitest": "3.2.6"
+  }
+}

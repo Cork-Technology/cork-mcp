@@ -1,0 +1,678 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.cork.tech/operations/v1/common.schema.json",
+  "title": "Cork operation result version 1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/readResult"
+    },
+    {
+      "$ref": "#/$defs/invalid"
+    },
+    {
+      "$ref": "#/$defs/unavailable"
+    },
+    {
+      "$ref": "#/$defs/prerequisite"
+    },
+    {
+      "$ref": "#/$defs/prepared"
+    },
+    {
+      "$ref": "#/$defs/finalized"
+    },
+    {
+      "$ref": "#/$defs/executable"
+    },
+    {
+      "$ref": "#/$defs/permit2Revocation"
+    },
+    {
+      "$ref": "#/$defs/submitted"
+    },
+    {
+      "$ref": "#/$defs/reconciled"
+    }
+  ],
+  "$defs": {
+    "uint": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "keccak256": {
+      "type": "string",
+      "pattern": "^keccak256:[0-9a-f]{64}$"
+    },
+    "operationId": {
+      "type": "string",
+      "pattern": "^op_[0-9a-f]{32}$"
+    },
+    "coreBuild": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["packageVersion", "sourceCommit", "schemaDigest"],
+      "properties": {
+        "packageVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$"
+        },
+        "sourceCommit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "schemaDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "account": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "address"],
+      "properties": {
+        "kind": {
+          "enum": ["externally-owned-account", "safe"]
+        },
+        "address": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{40}$"
+        }
+      }
+    },
+    "warning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "path",
+        "message",
+        "expected",
+        "actual",
+        "retryable"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actual": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retryable": {
+          "const": false
+        }
+      }
+    },
+    "reason": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "dependency", "retryable"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dependency": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "retryAfter": {
+          "$ref": "#/$defs/uint"
+        }
+      }
+    },
+    "readResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "state",
+        "coreBuild",
+        "createdAt",
+        "resultDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.operation/v1"
+        },
+        "state": {
+          "const": "read-result"
+        },
+        "coreBuild": {
+          "$ref": "#/$defs/coreBuild"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/uint"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/warning"
+          }
+        },
+        "resultDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "invalid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "state",
+        "coreBuild",
+        "createdAt",
+        "receivedInputDigest",
+        "issues"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.operation/v1"
+        },
+        "state": {
+          "const": "invalid"
+        },
+        "coreBuild": {
+          "$ref": "#/$defs/coreBuild"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/uint"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/warning"
+          }
+        },
+        "receivedInputDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "issues": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/issue"
+          }
+        }
+      }
+    },
+    "unavailable": {
+      "type": "object",
+      "additionalProperties": false,
+      "dependentRequired": {
+        "operationId": ["intentDigest", "account", "chainId", "deploymentId"],
+        "intentDigest": ["operationId", "account", "chainId", "deploymentId"],
+        "account": ["operationId", "intentDigest", "chainId", "deploymentId"],
+        "chainId": ["operationId", "intentDigest", "account", "deploymentId"],
+        "deploymentId": ["operationId", "intentDigest", "account", "chainId"]
+      },
+      "required": [
+        "schemaVersion",
+        "state",
+        "coreBuild",
+        "createdAt",
+        "reason"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.operation/v1"
+        },
+        "state": {
+          "const": "unavailable"
+        },
+        "coreBuild": {
+          "$ref": "#/$defs/coreBuild"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/uint"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/warning"
+          }
+        },
+        "receivedInputDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "affectedArtifactDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "operationId": {
+          "$ref": "#/$defs/operationId"
+        },
+        "intentDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "account": {
+          "$ref": "#/$defs/account"
+        },
+        "chainId": {
+          "$ref": "#/$defs/uint"
+        },
+        "deploymentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "$ref": "#/$defs/reason"
+        }
+      }
+    },
+    "prerequisite": {
+      "$ref": "#/$defs/boundArtifactPrerequisite"
+    },
+    "prepared": {
+      "$ref": "#/$defs/boundArtifactPrepared"
+    },
+    "finalized": {
+      "$ref": "#/$defs/boundArtifactFinalized"
+    },
+    "executable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "state",
+        "coreBuild",
+        "createdAt",
+        "operationId",
+        "intentDigest",
+        "account",
+        "chainId",
+        "deploymentId",
+        "artifactDigest",
+        "executionDigest",
+        "certificateDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.operation/v1"
+        },
+        "state": {
+          "const": "executable"
+        },
+        "coreBuild": {
+          "$ref": "#/$defs/coreBuild"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/uint"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/warning"
+          }
+        },
+        "operationId": {
+          "$ref": "#/$defs/operationId"
+        },
+        "intentDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "account": {
+          "$ref": "#/$defs/account"
+        },
+        "chainId": {
+          "$ref": "#/$defs/uint"
+        },
+        "deploymentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifactDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "executionDigest": {
+          "$ref": "#/$defs/keccak256"
+        },
+        "certificateDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "permit2Revocation": {
+      "$ref": "#/$defs/boundArtifactPermit2Revocation"
+    },
+    "submitted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "state",
+        "coreBuild",
+        "createdAt",
+        "submissionDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.operation/v1"
+        },
+        "state": {
+          "const": "submitted"
+        },
+        "coreBuild": {
+          "$ref": "#/$defs/coreBuild"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/uint"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/warning"
+          }
+        },
+        "submissionDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "reconciled": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "state",
+        "coreBuild",
+        "createdAt",
+        "reconciliationDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.operation/v1"
+        },
+        "state": {
+          "const": "reconciled"
+        },
+        "coreBuild": {
+          "$ref": "#/$defs/coreBuild"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/uint"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/warning"
+          }
+        },
+        "reconciliationDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "boundArtifactPrerequisite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "state",
+        "coreBuild",
+        "createdAt",
+        "operationId",
+        "intentDigest",
+        "account",
+        "chainId",
+        "deploymentId",
+        "artifactDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.operation/v1"
+        },
+        "state": {
+          "const": "prerequisite"
+        },
+        "coreBuild": {
+          "$ref": "#/$defs/coreBuild"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/uint"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/warning"
+          }
+        },
+        "operationId": {
+          "$ref": "#/$defs/operationId"
+        },
+        "intentDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "account": {
+          "$ref": "#/$defs/account"
+        },
+        "chainId": {
+          "$ref": "#/$defs/uint"
+        },
+        "deploymentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifactDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "boundArtifactPrepared": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "state",
+        "coreBuild",
+        "createdAt",
+        "operationId",
+        "intentDigest",
+        "account",
+        "chainId",
+        "deploymentId",
+        "artifactDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.operation/v1"
+        },
+        "state": {
+          "const": "prepared"
+        },
+        "coreBuild": {
+          "$ref": "#/$defs/coreBuild"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/uint"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/warning"
+          }
+        },
+        "operationId": {
+          "$ref": "#/$defs/operationId"
+        },
+        "intentDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "account": {
+          "$ref": "#/$defs/account"
+        },
+        "chainId": {
+          "$ref": "#/$defs/uint"
+        },
+        "deploymentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifactDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "boundArtifactFinalized": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "state",
+        "coreBuild",
+        "createdAt",
+        "operationId",
+        "intentDigest",
+        "account",
+        "chainId",
+        "deploymentId",
+        "artifactDigest",
+        "executionDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.operation/v1"
+        },
+        "state": {
+          "const": "finalized"
+        },
+        "coreBuild": {
+          "$ref": "#/$defs/coreBuild"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/uint"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/warning"
+          }
+        },
+        "operationId": {
+          "$ref": "#/$defs/operationId"
+        },
+        "intentDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "account": {
+          "$ref": "#/$defs/account"
+        },
+        "chainId": {
+          "$ref": "#/$defs/uint"
+        },
+        "deploymentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifactDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "executionDigest": {
+          "$ref": "#/$defs/keccak256"
+        }
+      }
+    },
+    "boundArtifactPermit2Revocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "state",
+        "coreBuild",
+        "createdAt",
+        "operationId",
+        "intentDigest",
+        "account",
+        "chainId",
+        "deploymentId",
+        "artifactDigest",
+        "executionDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.operation/v1"
+        },
+        "state": {
+          "const": "permit2-revocation"
+        },
+        "coreBuild": {
+          "$ref": "#/$defs/coreBuild"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/uint"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/warning"
+          }
+        },
+        "operationId": {
+          "$ref": "#/$defs/operationId"
+        },
+        "intentDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "account": {
+          "$ref": "#/$defs/account"
+        },
+        "chainId": {
+          "$ref": "#/$defs/uint"
+        },
+        "deploymentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifactDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "executionDigest": {
+          "$ref": "#/$defs/keccak256"
+        }
+      }
+    }
+  }
+}

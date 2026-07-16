@@ -1,0 +1,435 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cork.tech/schemas/signing-gate/policy-generation.v1.schema.json",
+  "title": "PolicyGenerationV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "repository",
+    "immutablePath",
+    "policyId",
+    "generation",
+    "status",
+    "canonicalPayload",
+    "policyDigest",
+    "trustRoot",
+    "signatures",
+    "reviewPromotion",
+    "publisher",
+    "repositoryRelease",
+    "transparencyRecord"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "cork.signing-policy-generation/v1"
+    },
+    "repository": {
+      "const": "Cork-Technology/cork-signing-gate"
+    },
+    "immutablePath": {
+      "type": "string",
+      "pattern": "^policy-generations/[A-Za-z0-9._-]+/[1-9][0-9]*/$"
+    },
+    "policyId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generation": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "status": {
+      "enum": ["staged", "active", "retired", "emergency-disabled"]
+    },
+    "canonicalPayload": {
+      "$ref": "#/$defs/canonicalPayload"
+    },
+    "policyDigest": {
+      "$ref": "#/$defs/sha256"
+    },
+    "trustRoot": {
+      "$ref": "#/$defs/trustRoot"
+    },
+    "signatures": {
+      "type": "array",
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/signature"
+      }
+    },
+    "reviewPromotion": {
+      "$ref": "#/$defs/reviewPromotion"
+    },
+    "publisher": {
+      "$ref": "#/$defs/publisher"
+    },
+    "repositoryRelease": {
+      "$ref": "#/$defs/repositoryRelease"
+    },
+    "transparencyRecord": {
+      "$ref": "#/$defs/transparencyRecord"
+    },
+    "successor": {
+      "$ref": "#/$defs/successor"
+    },
+    "tombstone": {
+      "$ref": "#/$defs/tombstone"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "staged"
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "signatures": {
+            "maxItems": 0
+          }
+        },
+        "not": {
+          "required": ["tombstone"]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": ["active", "retired"]
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "signatures": {
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "not": {
+          "required": ["tombstone"]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "emergency-disabled"
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["tombstone"],
+        "properties": {
+          "signatures": {
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "not": {
+          "required": ["successor"]
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "canonicalPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policyId",
+        "generation",
+        "allowedGateBuildDigest",
+        "allowedDeploymentIds",
+        "approvedAccountComponents",
+        "requireIndependentSimulation",
+        "maximumObservationAgeMs",
+        "maximumHeadLag"
+      ],
+      "properties": {
+        "policyId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "allowedGateBuildDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "allowedDeploymentIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "approvedAccountComponents": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "requireIndependentSimulation": {
+          "const": true
+        },
+        "maximumObservationAgeMs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60000
+        },
+        "maximumHeadLag": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        }
+      }
+    },
+    "trustRoot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trustDomain",
+        "trustRootId",
+        "owner",
+        "offline",
+        "approvedKeyIds",
+        "threshold"
+      ],
+      "properties": {
+        "trustDomain": {
+          "const": "security-engineering-signing-policy"
+        },
+        "trustRootId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner": {
+          "const": "Security Engineering"
+        },
+        "offline": {
+          "const": true
+        },
+        "approvedKeyIds": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "threshold": {
+          "const": 2
+        }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["keyId", "algorithm", "policyDigest", "signatureBase64"],
+      "properties": {
+        "keyId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "algorithm": {
+          "const": "ed25519"
+        },
+        "policyDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "signatureBase64": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "reviewPromotion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reviewedBy",
+        "reviewDigest",
+        "promotedBy",
+        "promotedAt",
+        "promotionDigest"
+      ],
+      "properties": {
+        "reviewedBy": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "reviewDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "promotedBy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "promotedAt": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "promotionDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "publisher": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["publisherId", "publishedAt"],
+      "properties": {
+        "publisherId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "publishedAt": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "repositoryRelease": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repositoryCommit", "releaseTag", "releaseDigest"],
+      "properties": {
+        "repositoryCommit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "releaseTag": {
+          "type": "string",
+          "minLength": 1
+        },
+        "releaseDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "transparencyRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["logId", "entryId", "entryDigest", "recordedAt"],
+      "properties": {
+        "logId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "entryId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "entryDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "recordedAt": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "successor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policyId",
+        "generation",
+        "policyDigest",
+        "repository",
+        "immutablePath"
+      ],
+      "properties": {
+        "policyId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "policyDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "repository": {
+          "const": "Cork-Technology/cork-signing-gate"
+        },
+        "immutablePath": {
+          "type": "string",
+          "pattern": "^policy-generations/[A-Za-z0-9._-]+/[1-9][0-9]*/$"
+        }
+      }
+    },
+    "tombstone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "previousStatus",
+        "newStatus",
+        "policyDigest",
+        "keyId",
+        "algorithm",
+        "reason",
+        "issuedAt",
+        "signatureBase64"
+      ],
+      "properties": {
+        "previousStatus": {
+          "const": "active"
+        },
+        "newStatus": {
+          "const": "emergency-disabled"
+        },
+        "policyDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "keyId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "algorithm": {
+          "const": "ed25519"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "issuedAt": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "signatureBase64": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,474 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cork.tech/schemas/v1/market-deployment.schema.json",
+  "title": "Cork market deployment profile",
+  "oneOf": [
+    { "$ref": "#/$defs/quoteInput" },
+    { "$ref": "#/$defs/quote" },
+    { "$ref": "#/$defs/marketDeployment" },
+    { "$ref": "#/$defs/preparedDeployment" },
+    { "$ref": "#/$defs/simulation" },
+    { "$ref": "#/$defs/reconciliation" }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "keccak256": {
+      "type": "string",
+      "pattern": "^keccak256:[0-9a-f]{64}$"
+    },
+    "address": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{40}$"
+    },
+    "bytes": {
+      "type": "string",
+      "pattern": "^0x(?:[0-9a-f]{2})*$"
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceCommit", "packageVersion"],
+      "properties": {
+        "sourceCommit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "packageVersion": { "type": "string", "minLength": 1 }
+      }
+    },
+    "schemaDigests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "handoff",
+        "resolvedArtifact",
+        "verdict",
+        "build",
+        "staging",
+        "unsignedSafeProposal",
+        "attestation"
+      ],
+      "properties": {
+        "handoff": { "$ref": "#/$defs/sha256" },
+        "resolvedArtifact": { "$ref": "#/$defs/sha256" },
+        "verdict": { "$ref": "#/$defs/sha256" },
+        "build": { "$ref": "#/$defs/sha256" },
+        "staging": { "$ref": "#/$defs/sha256" },
+        "unsignedSafeProposal": { "$ref": "#/$defs/sha256" },
+        "attestation": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "status",
+        "revision",
+        "releaseIdentity",
+        "underwritingService",
+        "marketPipeline",
+        "marketRegistry",
+        "recipePackage",
+        "schemaDigests",
+        "releaseDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.merged-rfc007-release/v1"
+        },
+        "status": { "const": "merged-immutable" },
+        "revision": { "type": "string", "minLength": 1 },
+        "releaseIdentity": { "type": "string", "minLength": 1 },
+        "underwritingService": { "$ref": "#/$defs/producer" },
+        "marketPipeline": { "$ref": "#/$defs/producer" },
+        "marketRegistry": { "$ref": "#/$defs/producer" },
+        "recipePackage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["identity", "version", "digest"],
+          "properties": {
+            "identity": { "type": "string", "minLength": 1 },
+            "version": { "type": "string", "minLength": 1 },
+            "digest": { "$ref": "#/$defs/sha256" }
+          }
+        },
+        "schemaDigests": { "$ref": "#/$defs/schemaDigests" },
+        "releaseDigest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "producerIdentity",
+        "bytes",
+        "byteDigest",
+        "contentDigest"
+      ],
+      "properties": {
+        "schemaVersion": { "type": "string", "minLength": 1 },
+        "producerIdentity": { "type": "string", "minLength": 1 },
+        "bytes": { "$ref": "#/$defs/bytes" },
+        "byteDigest": { "$ref": "#/$defs/sha256" },
+        "contentDigest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "schemaDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifactName",
+        "encoding",
+        "producerIdentity",
+        "releaseIdentity",
+        "schema",
+        "schemaDigest"
+      ],
+      "properties": {
+        "artifactName": {
+          "enum": [
+            "handoff",
+            "resolvedArtifact",
+            "verdict",
+            "build",
+            "staging",
+            "unsignedSafeProposal",
+            "attestation"
+          ]
+        },
+        "encoding": { "const": "canonical-json-utf8" },
+        "producerIdentity": { "type": "string", "minLength": 1 },
+        "releaseIdentity": { "type": "string", "minLength": 1 },
+        "schema": true,
+        "schemaDigest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "schemaBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "revision",
+        "releaseIdentity",
+        "documents",
+        "bundleDigest"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "cork.rfc007-schema-bundle/v1" },
+        "revision": { "type": "string", "minLength": 1 },
+        "releaseIdentity": { "type": "string", "minLength": 1 },
+        "documents": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "items": { "$ref": "#/$defs/schemaDocument" }
+        },
+        "bundleDigest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "marketRegistry",
+        "collateralAsset",
+        "referenceAsset",
+        "wrapperFactory",
+        "expectedWrapper",
+        "registryDeployCalldata",
+        "registryDeployCalldataHash",
+        "poolCreationSender",
+        "poolCreationTarget",
+        "poolCreationCalldata",
+        "poolCreationCalldataHash",
+        "orderedCallsDigest"
+      ],
+      "properties": {
+        "marketRegistry": { "$ref": "#/$defs/address" },
+        "collateralAsset": { "$ref": "#/$defs/address" },
+        "referenceAsset": { "$ref": "#/$defs/address" },
+        "wrapperFactory": { "$ref": "#/$defs/address" },
+        "expectedWrapper": { "$ref": "#/$defs/address" },
+        "registryDeployCalldata": { "$ref": "#/$defs/bytes" },
+        "registryDeployCalldataHash": { "$ref": "#/$defs/keccak256" },
+        "poolCreationSender": { "$ref": "#/$defs/address" },
+        "poolCreationTarget": { "$ref": "#/$defs/address" },
+        "poolCreationCalldata": { "$ref": "#/$defs/bytes" },
+        "poolCreationCalldataHash": { "$ref": "#/$defs/keccak256" },
+        "orderedCallsDigest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "marketDeployment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "clientRequestId",
+        "chainId",
+        "automationRelease",
+        "schemaBundle",
+        "handoff",
+        "resolvedArtifact",
+        "verdict",
+        "buildArtifact",
+        "buildPackage",
+        "stagingEvidence",
+        "unsignedSafeProposal",
+        "attestation"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "cork.market-deployment/v1" },
+        "clientRequestId": { "type": "string", "minLength": 1 },
+        "chainId": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$" },
+        "automationRelease": { "$ref": "#/$defs/release" },
+        "schemaBundle": { "$ref": "#/$defs/schemaBundle" },
+        "handoff": { "$ref": "#/$defs/artifact" },
+        "resolvedArtifact": { "$ref": "#/$defs/artifact" },
+        "verdict": { "$ref": "#/$defs/artifact" },
+        "buildArtifact": { "$ref": "#/$defs/artifact" },
+        "buildPackage": { "$ref": "#/$defs/build" },
+        "stagingEvidence": { "$ref": "#/$defs/artifact" },
+        "unsignedSafeProposal": { "$ref": "#/$defs/artifact" },
+        "attestation": { "$ref": "#/$defs/artifact" }
+      }
+    },
+    "quoteInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "clientRequestId",
+        "chainId",
+        "automationRelease",
+        "schemaBundle",
+        "handoff"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.market-deployment-quote-input/v1"
+        },
+        "clientRequestId": { "type": "string", "minLength": 1 },
+        "chainId": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$" },
+        "automationRelease": { "$ref": "#/$defs/release" },
+        "schemaBundle": { "$ref": "#/$defs/schemaBundle" },
+        "handoff": { "$ref": "#/$defs/artifact" }
+      }
+    },
+    "quote": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "outcome", "quoteDigest"],
+      "properties": {
+        "schemaVersion": { "const": "cork.market-deployment-quote/v1" },
+        "outcome": { "enum": ["invalid", "quoted"] },
+        "code": { "const": "INPUT_INVALID" },
+        "issues": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "clientRequestId": { "type": "string", "minLength": 1 },
+        "chainId": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$" },
+        "release": { "$ref": "#/$defs/release" },
+        "schemaBundleDigest": { "$ref": "#/$defs/sha256" },
+        "handoff": { "$ref": "#/$defs/artifact" },
+        "quoteDigest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["chainId", "collateralAsset", "referenceAsset"],
+      "properties": {
+        "chainId": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$" },
+        "collateralAsset": { "$ref": "#/$defs/address" },
+        "referenceAsset": { "$ref": "#/$defs/address" }
+      }
+    },
+    "blockBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockNumber", "blockHash", "parentBlockHash"],
+      "properties": {
+        "blockNumber": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "blockHash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{64}$"
+        },
+        "parentBlockHash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{64}$"
+        }
+      }
+    },
+    "transaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sender", "target", "value", "data", "dataDigest"],
+      "properties": {
+        "sender": { "$ref": "#/$defs/address" },
+        "target": { "$ref": "#/$defs/address" },
+        "value": { "const": "0" },
+        "data": { "$ref": "#/$defs/bytes" },
+        "dataDigest": { "$ref": "#/$defs/keccak256" }
+      }
+    },
+    "preparedDeployment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "outcome", "preparedDigest"],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.prepared-market-deployment/v1"
+        },
+        "outcome": {
+          "enum": ["conflict", "existing-wrapper", "fresh-deployment"]
+        },
+        "code": { "type": "string" },
+        "conflicts": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "quoteDigest": { "$ref": "#/$defs/sha256" },
+        "release": { "$ref": "#/$defs/release" },
+        "buildPackage": { "$ref": "#/$defs/build" },
+        "pair": { "$ref": "#/$defs/pair" },
+        "producerArtifactDigests": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "items": { "$ref": "#/$defs/sha256" }
+        },
+        "quorumDigest": { "$ref": "#/$defs/sha256" },
+        "quorumBinding": { "$ref": "#/$defs/blockBinding" },
+        "wrapper": { "$ref": "#/$defs/address" },
+        "transactions": {
+          "type": "array",
+          "maxItems": 2,
+          "items": { "$ref": "#/$defs/transaction" }
+        },
+        "poolExecutionProven": { "const": false },
+        "preparedDigest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "simulation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "preparedDigest",
+        "quoteDigest",
+        "releaseDigest",
+        "quorumDigest",
+        "orderedCallsDigest",
+        "calls",
+        "status",
+        "simulatedAt",
+        "deploymentProven",
+        "simulationDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.market-deployment-simulation/v1"
+        },
+        "preparedDigest": { "$ref": "#/$defs/sha256" },
+        "quoteDigest": { "$ref": "#/$defs/sha256" },
+        "releaseDigest": { "$ref": "#/$defs/sha256" },
+        "quorumDigest": { "$ref": "#/$defs/sha256" },
+        "orderedCallsDigest": { "$ref": "#/$defs/sha256" },
+        "calls": {
+          "type": "array",
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "transactionIndex",
+              "target",
+              "dataDigest",
+              "status",
+              "reasonCode"
+            ],
+            "properties": {
+              "transactionIndex": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "target": { "$ref": "#/$defs/address" },
+              "dataDigest": { "$ref": "#/$defs/keccak256" },
+              "status": {
+                "enum": ["success", "revert", "unavailable"]
+              },
+              "reasonCode": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "status": { "enum": ["success", "revert", "unavailable"] },
+        "simulatedAt": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "deploymentProven": { "const": false },
+        "simulationDigest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "reconciliation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "status", "reconciliationDigest"],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.market-deployment-reconciliation/v1"
+        },
+        "status": {
+          "enum": [
+            "verified-existing-wrapper",
+            "fresh-two-step-success",
+            "repeat-registry-no-event",
+            "uncertain-registry-outcome",
+            "registry-only-partial",
+            "pool-evidence-mismatch",
+            "conflict"
+          ]
+        },
+        "conflicts": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "preparedDigest": { "$ref": "#/$defs/sha256" },
+        "quoteDigest": { "$ref": "#/$defs/sha256" },
+        "releaseDigest": { "$ref": "#/$defs/sha256" },
+        "producerArtifactDigests": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "items": { "$ref": "#/$defs/sha256" }
+        },
+        "finalQuorumDigest": { "$ref": "#/$defs/sha256" },
+        "finalBinding": { "$ref": "#/$defs/blockBinding" },
+        "wrapper": { "$ref": "#/$defs/address" },
+        "verifiedReceiptDigests": {
+          "type": "array",
+          "maxItems": 2,
+          "items": { "$ref": "#/$defs/sha256" }
+        },
+        "remainingTransactions": {
+          "type": "array",
+          "maxItems": 2,
+          "items": { "$ref": "#/$defs/transaction" }
+        },
+        "wrapperDeploymentProven": { "type": "boolean" },
+        "poolExecutionProven": { "type": "boolean" },
+        "reconciliationDigest": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}
