@@ -1,8 +1,5 @@
-import {
-  type CredentialClaims,
-  type ToolDefinition,
-  type ToolRouter,
-} from "./index.js";
+import { type CredentialClaims } from "./controls.js";
+import { type ClosedInputSchema, type RouterCallResult } from "./router.js";
 
 export const STABLE_MCP_SDK_VERSION = "1.29.0" as const;
 export const STABLE_MCP_PROTOCOL_ERA = "2025-11-25" as const;
@@ -70,10 +67,27 @@ export const defaultStableSdkLoader: StableSdkLoader = {
   },
 };
 
-function mcpTool(tool: ToolDefinition): {
+export interface StdioToolDefinition {
   readonly name: string;
   readonly description: string;
-  readonly inputSchema: ToolDefinition["inputSchema"];
+  readonly inputSchema: ClosedInputSchema;
+}
+
+export interface StdioToolRouter {
+  listTools(principal: CredentialClaims): readonly StdioToolDefinition[];
+  call(input: {
+    readonly name: string;
+    readonly arguments: unknown;
+    readonly principal: CredentialClaims;
+    readonly signal?: AbortSignal;
+    readonly deadlineAtMs?: number;
+  }): Promise<RouterCallResult>;
+}
+
+function mcpTool(tool: StdioToolDefinition): {
+  readonly name: string;
+  readonly description: string;
+  readonly inputSchema: ClosedInputSchema;
 } {
   return {
     name: tool.name,
@@ -83,7 +97,7 @@ function mcpTool(tool: ToolDefinition): {
 }
 
 export async function startStdioServer(input: {
-  readonly router: ToolRouter;
+  readonly router: StdioToolRouter;
   readonly principal: CredentialClaims;
   readonly loader?: StableSdkLoader;
 }): Promise<ServerLike> {

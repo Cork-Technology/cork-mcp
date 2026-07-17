@@ -25,6 +25,7 @@
     "format:check": "prettier --check . --ignore-unknown",
     "premcp:dev": "npm run build --silent",
     "mcp:dev": "npm run dev --workspace @corkprotocol/gateway",
+    "mcp:safe-demo": "npm run build --silent && npm run safe-demo --workspace @corkprotocol/gateway --",
     "mcp:smoke": "npm run build && npm run smoke --workspace @corkprotocol/gateway",
     "test": "npm run test:unit && npm run test:boundaries",
     "test:unit": "npm test --workspace @corkprotocol/operations && npm test --workspace @corkprotocol/operations-node && npm test --workspace @corkprotocol/gateway && npm test --workspace @corkprotocol/conformance",

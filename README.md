@@ -34,7 +34,14 @@ To start the fixture server manually:
 npm run mcp:dev
 ```
 
-The process waits for a Model Context Protocol client on standard input/output. It performs no network calls, signing, transaction submission, broadcast, or persistence. Every successful handler response is explicitly labeled `fixtureOnly: true`. See [the local development guide](./docs/local-development.md) for client configuration, safety properties, and troubleshooting.
+To construct and inspect a local Safe transaction for one of the synthetic markets:
+
+```
+npm run mcp:safe-demo -- --list
+npm run mcp:safe-demo
+```
+
+The process waits for a Model Context Protocol client on standard input/output. It performs no network calls, production signature verification, Safe confirmation, transaction submission, broadcast, or persistence. Every successful handler response is explicitly labeled `fixtureOnly: true`. The local Safe demo uses the canonical Cork unwind encoder and Safe hash implementation with deterministic synthetic evidence and signatures. See [the local development guide](./docs/local-development.md) for market selection, complete artifact output, client configuration, safety properties, and troubleshooting.
 
 The latest recorded Node.js baseline passed formatting, linting, typechecking, builds, unit and boundary tests, audits, and the root continuous-integration command. Rust formatting, linting, native tests, and WebAssembly verification were not executed in that local baseline.
 
@@ -70,6 +77,7 @@ The detailed dependency and release contracts are in [ARCHITECTURE.md](./ARCHITE
 | `npm run lint`            | Run every workspace lint script that exists.                    |
 | `npm run format:check`    | Check repository formatting with the pinned formatter.          |
 | `npm run mcp:smoke`       | Perform a real client/server standard-input/output handshake.   |
+| `npm run mcp:safe-demo`   | Construct a non-broadcast Safe transaction for a local fixture. |
 | `npm run mcp:dev`         | Start the fixture-only local Model Context Protocol server.     |
 | `npm run test:unit`       | Run workspace unit-test scripts.                                |
 | `npm run test:boundaries` | Run browser/Node and package-dependency boundary suites.        |

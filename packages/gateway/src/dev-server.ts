@@ -17,7 +17,8 @@ Options:
   --version  Print the server version and exit
 
 The no-argument and --quiet forms start a standard-input/output server.
-This fixture performs no network calls, signing, submission, or persistence.
+This fixture performs no network calls, production signature verification,
+Safe confirmation, submission, broadcast, or persistence.
 `;
 
 function fail(message: string, exitCode: number): never {

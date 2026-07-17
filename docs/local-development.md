@@ -1,6 +1,6 @@
 # Run the local fixture server
 
-The local fixture server lets a Model Context Protocol client discover and call Cork tools over standard input/output without production credentials or infrastructure. It is deliberately incapable of network access, signing, transaction submission, broadcast, or persistence. Every successful handler response includes `fixtureOnly: true` and an explicit fixture notice.
+The local fixture server lets a Model Context Protocol client discover and call Cork tools over standard input/output without production credentials or infrastructure. It is deliberately incapable of network access, production signature verification, Safe confirmation, transaction submission, broadcast, or persistence. Every successful handler response includes `fixtureOnly: true` and an explicit fixture notice.
 
 ## Prerequisites
 
@@ -24,7 +24,37 @@ Run the included smoke client:
 npm run mcp:smoke
 ```
 
-The smoke client starts the compiled server through the official standard-input/output client transport, negotiates the protocol, lists tools, calls `cork.capabilities.v1`, confirms the response is fixture-only, and shuts the child process down. A successful run prints the number of discovered tools.
+The smoke client starts the compiled server through the official standard-input/output client transport, negotiates the protocol, lists tools, calls `cork.capabilities.v1`, lists local markets, constructs a sample Safe transaction, confirms it is fixture-only and non-broadcast, and shuts the child process down. A successful run prints the market, Safe transaction hash, target, nonce, and calldata size.
+
+## Construct local Safe transactions
+
+List the available synthetic markets:
+
+```
+npm run mcp:safe-demo -- --list
+```
+
+Construct a paired-share unwind for the default market:
+
+```
+npm run mcp:safe-demo
+```
+
+Choose a market and vary the amounts or Safe nonce:
+
+```
+npm run mcp:safe-demo -- \
+  --market synthetic-wsteth-usdc-2027 \
+  --shares 5000000000000 \
+  --min-collateral 2000000 \
+  --nonce 8
+```
+
+Add `--json` to inspect the complete prepared action, finalized calldata, evidence bindings, and Safe wrapper. Add `--receiver 0x...` to test a different lowercase fixture receiver.
+
+The command is a real Model Context Protocol client/server round trip. The resulting bundler calldata is produced by the canonical paired-share unwind implementation, and the Safe transaction hash is produced by the canonical Safe implementation. Changing only the Safe nonce preserves the calldata and changes the Safe transaction hash. Requested shares are rounded down to the market's displayed precision quantum; the result shows both requested and effective amounts.
+
+The two included markets are synthetic. Their chain identifier, pool identifiers, token addresses, Safe configuration, evidence, and Permit2 signatures are deterministic fixtures. The injected verification seams accept only for local testing. The artifacts must not be imported into a production Safe or submitted to a chain.
 
 ## Start the server manually
 
@@ -56,13 +86,18 @@ Use the absolute path returned by `command -v node` while Node.js 22 is active. 
 ## Fixture behavior
 
 - The complete stable static tool catalog is discoverable, subject to the same scope, capability, closed-input, and bounded-work checks as the gateway.
+- Two additional `cork.local.*` tools exist only in the local fixture router. They cannot appear in the production static catalog.
 - The seven capped-input capability variants remain unavailable and undiscoverable.
 - Capability maturity uses deterministic local fixture identities and digests.
-- Every tool implementation is in-memory and returns its handler name plus the validated input.
+- Stable hosted-tool handlers remain in-memory echoes. The local market-list and Safe-unwind handlers call the canonical Cork operation core and return deterministic fixture artifacts.
 - No environment variables, secrets, provider addresses, chain connections, external services, databases, or signing keys are read.
 - The unpublished release-candidate adapter remains unavailable. The local server uses only the stable adapter.
 
-This mode tests protocol integration and tool discovery. It is not evidence that a production capability is activated, healthy, or safe to execute.
+This mode tests protocol integration, tool discovery, action encoding, precision rounding, Safe hash construction, and custody separation. It is not evidence that a production capability is activated, healthy, simulated against current state, or safe to execute.
+
+## Moving from fixtures to a real market
+
+A real-market test needs current, independently verified deployment and signing-policy generations; provider quorum; pool relationships and live token profiles; Safe singleton, handler, owners, threshold, modules, guard, and nonce; real caller-owned Permit2 signatures; and a pinned-block simulation. None of those values are inferred from the local fixture or from stale documentation. Even in a real integration, the Model Context Protocol server should stop at an unsigned Safe proposal: Safe confirmations and broadcast remain caller-owned.
 
 ## Troubleshooting
 

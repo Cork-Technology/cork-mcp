@@ -11,10 +11,21 @@ import {
   type CredentialClaims,
   type HostedScope,
 } from "./controls.js";
+import { LOCAL_FIXTURE_NOTICE } from "./dev-constants.js";
+import {
+  LOCAL_SAFE_TOOL_CATALOG,
+  findLocalSafeTool,
+  listLocalFixtureMarkets,
+  prepareLocalSafeUnwind,
+  type LocalSafeToolDefinition,
+} from "./dev-safe-fixture.js";
 import {
   STATIC_TOOL_CATALOG,
   ToolRouter,
   type HandlerKey,
+  type RouterCallResult,
+  type RouterErrorCode,
+  type ToolDefinition,
   type ToolHandler,
   type ToolHandlers,
 } from "./router.js";
@@ -22,8 +33,7 @@ import {
 const FIXTURE_DIGEST = `sha256:${"11".repeat(32)}` as Sha256Digest;
 const FIXTURE_SOURCE_COMMIT = "22".repeat(20);
 
-export const LOCAL_FIXTURE_NOTICE =
-  "Local fixture only: no network request, signing, transaction construction, submission, or persistence occurred." as const;
+export { LOCAL_FIXTURE_NOTICE } from "./dev-constants.js";
 
 function callableFixtureCapability(capabilityId: string): CapabilityMaturityV1 {
   const definition = {
@@ -139,20 +149,108 @@ function createFixtureAdmissionController(): WorkAdmissionController {
 export interface LocalFixtureGateway {
   readonly inventory: CapabilityInventoryV1;
   readonly principal: CredentialClaims;
-  readonly router: ToolRouter;
+  readonly router: LocalFixtureRouter;
+}
+
+type LocalFixtureToolDefinition = ToolDefinition | LocalSafeToolDefinition;
+
+function localToolError(
+  code: RouterErrorCode,
+  message: string,
+): RouterCallResult {
+  return { ok: false, error: { code, message } };
+}
+
+export class LocalFixtureRouter {
+  readonly #base: ToolRouter;
+
+  public constructor(base: ToolRouter) {
+    this.#base = base;
+  }
+
+  public listTools(
+    principal: CredentialClaims,
+  ): readonly LocalFixtureToolDefinition[] {
+    const localTools =
+      principal.environment === "local-fixture"
+        ? LOCAL_SAFE_TOOL_CATALOG.filter((tool) =>
+            principal.scopes.includes(tool.scope),
+          )
+        : [];
+    return [...this.#base.listTools(principal), ...localTools];
+  }
+
+  public async call(input: {
+    readonly name: string;
+    readonly arguments: unknown;
+    readonly principal: CredentialClaims;
+    readonly signal?: AbortSignal;
+    readonly deadlineAtMs?: number;
+  }): Promise<RouterCallResult> {
+    const tool = findLocalSafeTool(input.name);
+    if (tool === undefined) {
+      return this.#base.call(input);
+    }
+    if (
+      input.principal.environment !== "local-fixture" ||
+      !input.principal.scopes.includes(tool.scope)
+    ) {
+      return localToolError(
+        "AUTHENTICATION_SCOPE_DENIED",
+        "credential lacks access to local fixture tools",
+      );
+    }
+    if (input.signal?.aborted === true) {
+      return localToolError("REQUEST_CANCELLED", "request was cancelled");
+    }
+    if (input.deadlineAtMs !== undefined && Date.now() >= input.deadlineAtMs) {
+      return localToolError("DEADLINE_EXCEEDED", "request deadline elapsed");
+    }
+    try {
+      const coreResult =
+        input.name === "cork.local.markets.list.v1"
+          ? listLocalFixtureMarkets(input.arguments)
+          : prepareLocalSafeUnwind(input.arguments);
+      if (
+        input.deadlineAtMs !== undefined &&
+        Date.now() >= input.deadlineAtMs
+      ) {
+        return localToolError("DEADLINE_EXCEEDED", "request deadline elapsed");
+      }
+      return {
+        ok: true,
+        toolName: tool.name,
+        coreResult,
+        transportMetadata: {
+          principalId: input.principal.principalId,
+          environment: input.principal.environment,
+          scope: tool.scope,
+        },
+      };
+    } catch (error: unknown) {
+      if (error instanceof TypeError || error instanceof RangeError) {
+        return localToolError("INVALID_INPUT", error.message);
+      }
+      return localToolError(
+        "HANDLER_FAILED",
+        "local fixture transaction construction failed",
+      );
+    }
+  }
 }
 
 export function createLocalFixtureGateway(): LocalFixtureGateway {
   const inventory = createLocalFixtureInventory();
   const principal = createLocalFixturePrincipal();
+  const base = new ToolRouter({
+    capabilityInventory: () => inventory,
+    handlers: createFixtureHandlers(inventory),
+    admission: createFixtureAdmissionController(),
+    clock: { nowMs: () => Date.now() },
+  });
   return Object.freeze({
     inventory,
     principal,
-    router: new ToolRouter({
-      capabilityInventory: () => inventory,
-      handlers: createFixtureHandlers(inventory),
-      admission: createFixtureAdmissionController(),
-      clock: { nowMs: () => Date.now() },
-    }),
+    router: new LocalFixtureRouter(base),
   });
 }

@@ -23,6 +23,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "node --enable-source-maps dist/dev-server.js",
+    "safe-demo": "node --enable-source-maps dist/dev-safe-demo.js",
     "smoke": "node --enable-source-maps dist/dev-smoke.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --no-cache",
