@@ -13,6 +13,10 @@ import {
 } from "./controls.js";
 import { LOCAL_FIXTURE_NOTICE } from "./dev-constants.js";
 import {
+  LOCAL_SAFE_COVERAGE_TOOL,
+  prepareLocalSafeCoverage,
+} from "./dev-safe-coverage.js";
+import {
   LOCAL_SAFE_TOOL_CATALOG,
   findLocalSafeTool,
   listLocalFixtureMarkets,
@@ -32,6 +36,14 @@ import {
 
 const FIXTURE_DIGEST = `sha256:${"11".repeat(32)}` as Sha256Digest;
 const FIXTURE_SOURCE_COMMIT = "22".repeat(20);
+const LIVE_READ_HANDLER_KEYS = new Set<HandlerKey>([
+  "phoenix-pools",
+  "phoenix-pool-whitelists",
+  "phoenix-flows",
+  "phoenix-limit-order-markets",
+  "phoenix-limit-order-orderbook",
+  "phoenix-limit-order-fills",
+]);
 
 export { LOCAL_FIXTURE_NOTICE } from "./dev-constants.js";
 
@@ -63,26 +75,72 @@ function callableFixtureCapability(capabilityId: string): CapabilityMaturityV1 {
   });
 }
 
+function unavailableFixtureCapability(
+  capabilityId: string,
+): CapabilityMaturityV1 {
+  const definition = {
+    capabilityId,
+    version: "1",
+    specified: true as const,
+    commonProfileDigest: FIXTURE_DIGEST,
+    capabilityProfileDigest: FIXTURE_DIGEST,
+    vectorSetDigest: FIXTURE_DIGEST,
+  };
+  return evaluateCapabilityMaturity(definition, { healthy: false });
+}
+
+function createFixtureInventory(input: {
+  readonly packageVersion: string;
+  readonly callableCapabilityIds: ReadonlySet<string>;
+}): CapabilityInventoryV1 {
+  const capabilityIds = new Set(
+    STATIC_TOOL_CATALOG.flatMap((tool) =>
+      tool.capabilityId === undefined ? [] : [tool.capabilityId],
+    ),
+  );
+  const capabilities = [
+    ...[...capabilityIds].map((capabilityId) =>
+      input.callableCapabilityIds.has(capabilityId)
+        ? callableFixtureCapability(capabilityId)
+        : unavailableFixtureCapability(capabilityId),
+    ),
+    ...createCappedInputCapabilityRecords(FIXTURE_DIGEST),
+  ].sort((left, right) => left.capabilityId.localeCompare(right.capabilityId));
+  return createCapabilityInventory(
+    {
+      packageVersion: input.packageVersion,
+      sourceCommit: FIXTURE_SOURCE_COMMIT,
+      schemaDigest: FIXTURE_DIGEST,
+    },
+    capabilities,
+  );
+}
+
 export function createLocalFixtureInventory(): CapabilityInventoryV1 {
   const callableIds = new Set(
     STATIC_TOOL_CATALOG.flatMap((tool) =>
       tool.capabilityId === undefined ? [] : [tool.capabilityId],
     ),
   );
-  const capabilities = [
-    ...[...callableIds].map((capabilityId) =>
-      callableFixtureCapability(capabilityId),
+  return createFixtureInventory({
+    packageVersion: "0.1.0-local-fixture",
+    callableCapabilityIds: callableIds,
+  });
+}
+
+export function createLocalLiveReadInventory(): CapabilityInventoryV1 {
+  const callableIds = new Set(
+    STATIC_TOOL_CATALOG.flatMap((tool) =>
+      tool.capabilityId !== undefined &&
+      LIVE_READ_HANDLER_KEYS.has(tool.handlerKey)
+        ? [tool.capabilityId]
+        : [],
     ),
-    ...createCappedInputCapabilityRecords(FIXTURE_DIGEST),
-  ].sort((left, right) => left.capabilityId.localeCompare(right.capabilityId));
-  return createCapabilityInventory(
-    {
-      packageVersion: "0.1.0-local-fixture",
-      sourceCommit: FIXTURE_SOURCE_COMMIT,
-      schemaDigest: FIXTURE_DIGEST,
-    },
-    capabilities,
   );
+  return createFixtureInventory({
+    packageVersion: "0.1.0-local-live-read",
+    callableCapabilityIds: callableIds,
+  });
 }
 
 export function createLocalFixturePrincipal(): CredentialClaims {
@@ -101,7 +159,22 @@ export function createLocalFixturePrincipal(): CredentialClaims {
   });
 }
 
-function createFixtureHandlers(inventory: CapabilityInventoryV1): ToolHandlers {
+export function createLocalLiveReadPrincipal(): CredentialClaims {
+  return Object.freeze({
+    credentialId: "local-live-read-credential",
+    principalId: "local-live-read-principal",
+    ownerId: "local-live-read-owner",
+    environment: "local-live-read",
+    trafficClass: "first-party",
+    scopes: ["capabilities:read", "phoenix:read", "limit-orders:read"] as const,
+    issuedAtMs: 0,
+    revocationId: "local-live-read-revocation",
+  });
+}
+
+export function createFixtureHandlers(
+  inventory: CapabilityInventoryV1,
+): ToolHandlers {
   const handlers = new Map<HandlerKey, ToolHandler>();
   for (const tool of STATIC_TOOL_CATALOG) {
     if (handlers.has(tool.handlerKey)) {
@@ -119,7 +192,7 @@ function createFixtureHandlers(inventory: CapabilityInventoryV1): ToolHandlers {
   return Object.freeze(Object.fromEntries(handlers)) as ToolHandlers;
 }
 
-function createFixtureAdmissionController(): WorkAdmissionController {
+export function createFixtureAdmissionController(): WorkAdmissionController {
   return new WorkAdmissionController({
     perPrincipal: {
       concurrency: 100,
@@ -154,6 +227,20 @@ export interface LocalFixtureGateway {
 
 type LocalFixtureToolDefinition = ToolDefinition | LocalSafeToolDefinition;
 
+export const LOCAL_FIXTURE_TOOL_CATALOG: readonly LocalSafeToolDefinition[] =
+  Object.freeze([...LOCAL_SAFE_TOOL_CATALOG, LOCAL_SAFE_COVERAGE_TOOL]);
+
+function findLocalFixtureTool(
+  name: string,
+): LocalSafeToolDefinition | undefined {
+  return (
+    findLocalSafeTool(name) ??
+    (LOCAL_SAFE_COVERAGE_TOOL.name === name
+      ? LOCAL_SAFE_COVERAGE_TOOL
+      : undefined)
+  );
+}
+
 function localToolError(
   code: RouterErrorCode,
   message: string,
@@ -173,7 +260,7 @@ export class LocalFixtureRouter {
   ): readonly LocalFixtureToolDefinition[] {
     const localTools =
       principal.environment === "local-fixture"
-        ? LOCAL_SAFE_TOOL_CATALOG.filter((tool) =>
+        ? LOCAL_FIXTURE_TOOL_CATALOG.filter((tool) =>
             principal.scopes.includes(tool.scope),
           )
         : [];
@@ -187,7 +274,7 @@ export class LocalFixtureRouter {
     readonly signal?: AbortSignal;
     readonly deadlineAtMs?: number;
   }): Promise<RouterCallResult> {
-    const tool = findLocalSafeTool(input.name);
+    const tool = findLocalFixtureTool(input.name);
     if (tool === undefined) {
       return this.#base.call(input);
     }
@@ -207,10 +294,20 @@ export class LocalFixtureRouter {
       return localToolError("DEADLINE_EXCEEDED", "request deadline elapsed");
     }
     try {
-      const coreResult =
-        input.name === "cork.local.markets.list.v1"
-          ? listLocalFixtureMarkets(input.arguments)
-          : prepareLocalSafeUnwind(input.arguments);
+      let coreResult: unknown;
+      switch (input.name) {
+        case "cork.local.markets.list.v1":
+          coreResult = listLocalFixtureMarkets(input.arguments);
+          break;
+        case "cork.local.safe.unwind.prepare.v1":
+          coreResult = prepareLocalSafeUnwind(input.arguments);
+          break;
+        case "cork.local.safe.coverage.v1":
+          coreResult = prepareLocalSafeCoverage(input.arguments);
+          break;
+        default:
+          return localToolError("UNKNOWN_TOOL", "tool is not registered");
+      }
       if (
         input.deadlineAtMs !== undefined &&
         Date.now() >= input.deadlineAtMs

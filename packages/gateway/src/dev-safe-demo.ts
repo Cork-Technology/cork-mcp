@@ -21,6 +21,7 @@ Usage:
 
 Options:
   --list                    List local synthetic markets and exit
+  --coverage                Construct proposals for all six action profiles
   --market ID               Select a fixture market
   --shares AMOUNT           Paired shares requested, as an integer
   --min-collateral AMOUNT   Minimum collateral output, as an integer
@@ -42,6 +43,7 @@ a chain, collects Safe confirmations, or broadcasts.
 
 interface DemoOptions {
   readonly list: boolean;
+  readonly coverage: boolean;
   readonly json: boolean;
   readonly market: string;
   readonly shares: string;
@@ -81,6 +83,15 @@ interface ToolCallEnvelope {
       readonly safeTxHash?: unknown;
       readonly transactionAuthorization?: unknown;
     };
+    readonly actions?: readonly {
+      readonly profile?: unknown;
+      readonly coreFunction?: unknown;
+      readonly safeProposal?: {
+        readonly nonce?: unknown;
+        readonly safeTxHash?: unknown;
+        readonly data?: unknown;
+      };
+    }[];
     readonly safety?: unknown;
   };
 }
@@ -99,6 +110,7 @@ function optionValue(args: readonly string[], index: number): string {
 
 function parseOptions(args: readonly string[]): DemoOptions | "help" {
   let list = false;
+  let coverage = false;
   let json = false;
   let market = DEFAULTS.market;
   let shares = DEFAULTS.shares;
@@ -112,6 +124,9 @@ function parseOptions(args: readonly string[]): DemoOptions | "help" {
         return "help";
       case "--list":
         list = true;
+        break;
+      case "--coverage":
+        coverage = true;
         break;
       case "--json":
         json = true;
@@ -142,6 +157,7 @@ function parseOptions(args: readonly string[]): DemoOptions | "help" {
   }
   return {
     list,
+    coverage,
     json,
     market,
     shares,
@@ -233,6 +249,54 @@ if (parsed === "help") {
           "",
         ].join("\n"),
       );
+    } else if (parsed.coverage) {
+      const coverageEnvelope = parseEnvelope(
+        (
+          await client.callTool({
+            name: "cork.local.safe.coverage.v1",
+            arguments: {
+              marketId: parsed.market,
+              baseSafeNonce: parsed.nonce,
+            },
+          })
+        ).content,
+      );
+      assertSuccessful(coverageEnvelope, "Safe action coverage preparation");
+      const result = coverageEnvelope.coreResult;
+      if (
+        result.fixtureOnly !== true ||
+        result.broadcastReady !== false ||
+        result.actions === undefined ||
+        result.actions.length !== 6 ||
+        result.actions.some(
+          (action) =>
+            typeof action.safeProposal?.safeTxHash !== "string" ||
+            typeof action.safeProposal.data !== "string",
+        )
+      ) {
+        fail("Safe action coverage returned an unsafe or incomplete result");
+      }
+      if (parsed.json) {
+        process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      } else {
+        process.stdout.write(
+          [
+            "Cork local Safe action coverage constructed.",
+            `Market: ${String(result.market?.displayName)}`,
+            ...result.actions.map(
+              (action) =>
+                `- ${String(action.profile)} -> ${String(action.coreFunction)} | nonce ${String(action.safeProposal?.nonce)} | ${String(action.safeProposal?.safeTxHash)}`,
+            ),
+            "",
+            "Six proposals constructed; no Safe confirmations collected.",
+            "Broadcast: no — synthetic local fixtures only",
+            "Chain simulation: no — use production evidence and a pinned fork for a real Safe",
+            "",
+            "Use --json to inspect every prepared, finalized, and Safe proposal artifact.",
+            "",
+          ].join("\n"),
+        );
+      }
     } else {
       const selected = markets.find((market) => market.id === parsed.market);
       if (selected === undefined) {

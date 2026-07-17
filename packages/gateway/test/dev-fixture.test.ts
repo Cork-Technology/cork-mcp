@@ -3,11 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   createLocalFixtureGateway,
   LOCAL_FIXTURE_NOTICE,
+  LOCAL_FIXTURE_TOOL_CATALOG,
 } from "../src/dev-fixture.js";
-import {
-  LOCAL_FIXTURE_MARKETS,
-  LOCAL_SAFE_TOOL_CATALOG,
-} from "../src/dev-safe-fixture.js";
+import { LOCAL_FIXTURE_MARKETS } from "../src/dev-safe-fixture.js";
 import { STATIC_TOOL_CATALOG } from "../src/router.js";
 
 const SAFE_UNWIND_INPUT = {
@@ -23,7 +21,7 @@ describe("local fixture gateway", () => {
     const tools = fixture.router.listTools(fixture.principal);
 
     expect(tools).toHaveLength(
-      STATIC_TOOL_CATALOG.length + LOCAL_SAFE_TOOL_CATALOG.length,
+      STATIC_TOOL_CATALOG.length + LOCAL_FIXTURE_TOOL_CATALOG.length,
     );
     expect(tools.some((tool) => tool.name === "cork.capabilities.v1")).toBe(
       true,
@@ -42,8 +40,89 @@ describe("local fixture gateway", () => {
       expect.arrayContaining([
         "cork.local.markets.list.v1",
         "cork.local.safe.unwind.prepare.v1",
+        "cork.local.safe.coverage.v1",
       ]),
     );
+  });
+
+  it("constructs a non-broadcast Safe proposal for every supported action profile", async () => {
+    const fixture = createLocalFixtureGateway();
+    const result = await fixture.router.call({
+      name: "cork.local.safe.coverage.v1",
+      arguments: {
+        marketId: LOCAL_FIXTURE_MARKETS[0]!.id,
+        baseSafeNonce: "7",
+      },
+      principal: fixture.principal,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const core = result.coreResult as {
+      readonly fixtureOnly: boolean;
+      readonly broadcastReady: boolean;
+      readonly actions: readonly {
+        readonly profile: string;
+        readonly coreFunction: string;
+        readonly safeProposal: {
+          readonly nonce: string;
+          readonly safeTxHash: string;
+          readonly transactionAuthorization: string;
+        };
+      }[];
+      readonly safety: {
+        readonly proposalsSubmitted: boolean;
+        readonly safeConfirmationsCollected: boolean;
+        readonly chainSimulationPerformed: boolean;
+        readonly executionClaimed: boolean;
+      };
+    };
+    expect(core.fixtureOnly).toBe(true);
+    expect(core.broadcastReady).toBe(false);
+    expect(
+      core.actions.map(({ profile, coreFunction }) => ({
+        profile,
+        coreFunction,
+      })),
+    ).toEqual([
+      { profile: "paired-shares-unwind", coreFunction: "safeUnwindMint" },
+      { profile: "mint-collateral-in", coreFunction: "safeDeposit" },
+      { profile: "mint-paired-shares-out", coreFunction: "safeMint" },
+      {
+        profile: "repurchase-collateral-in-for-swap",
+        coreFunction: "safeUnwindSwap",
+      },
+      { profile: "unwind-collateral-out", coreFunction: "safeUnwindDeposit" },
+      { profile: "redeem-principal-token-in", coreFunction: "safeRedeem" },
+    ]);
+    expect(core.actions.map((action) => action.safeProposal.nonce)).toEqual([
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+    ]);
+    expect(
+      new Set(core.actions.map((action) => action.safeProposal.safeTxHash))
+        .size,
+    ).toBe(core.actions.length);
+    for (const action of core.actions) {
+      expect(action.safeProposal.safeTxHash).toMatch(/^0x[0-9a-f]{64}$/u);
+      expect(action.safeProposal.transactionAuthorization).toBe(
+        "caller-owned-not-collected",
+      );
+      expect(JSON.stringify(action.safeProposal)).not.toContain(
+        "confirmations",
+      );
+    }
+    expect(core.safety).toEqual({
+      source: "synthetic-local-fixture",
+      proposalsSubmitted: false,
+      safeConfirmationsCollected: false,
+      chainSimulationPerformed: false,
+      executionClaimed: false,
+    });
   });
 
   it("returns labeled in-memory fixture data without external side effects", async () => {

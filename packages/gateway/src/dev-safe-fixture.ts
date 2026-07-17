@@ -377,6 +377,42 @@ const SAFE_MESSAGE_VERIFIER = {
   verify: (): "0x1626ba7e" => "0x1626ba7e",
 };
 
+export interface LocalSafeFixtureEnvironment {
+  readonly market: LocalFixtureMarketV1;
+  readonly roots: GenerationEvidenceRootsInputV1;
+  readonly policy: ApprovedSafePolicyV1;
+  readonly configuration: SafeConfigurationV1;
+  readonly safeAddress: string;
+  readonly bundler3: string;
+  readonly corkAdapter: string;
+  readonly evidenceVerifier: BrowserSignatureVerifierV1;
+  digest(label: string): Sha256Digest;
+}
+
+export function createLocalSafeFixtureEnvironment(
+  marketId: string,
+  nonce: string,
+): LocalSafeFixtureEnvironment {
+  assertUint256Decimal(nonce, "nonce");
+  const market = LOCAL_FIXTURE_MARKETS.find(
+    (candidate) => candidate.id === marketId,
+  );
+  if (market === undefined) {
+    throw new TypeError("marketId is not a known local fixture market");
+  }
+  return Object.freeze({
+    market,
+    roots: generationRoots(market),
+    policy: SAFE_POLICY,
+    configuration: safeConfiguration(nonce),
+    safeAddress: FIXTURE_SAFE.safeAddress,
+    bundler3: FIXTURE_CONTRACTS.bundler3,
+    corkAdapter: FIXTURE_CONTRACTS.corkAdapter,
+    evidenceVerifier: EVIDENCE_VERIFIER,
+    digest: fixtureDigest,
+  });
+}
+
 function validateAddress(value: unknown, label: string): string {
   if (typeof value !== "string" || !ADDRESS.test(value)) {
     throw new TypeError(`${label} must be a lowercase address`);

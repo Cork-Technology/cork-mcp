@@ -35,6 +35,26 @@ export interface ApprovedSafePolicyV1 {
   readonly policyDigest: Sha256Digest;
 }
 
+export interface SafeCallProposalV1 {
+  readonly schemaVersion: "cork.safe-call-proposal/v1";
+  readonly safeConfiguration: SafeConfigurationV1;
+  readonly authorityDigest: Sha256Digest;
+  readonly to: string;
+  readonly value: "0";
+  readonly data: string;
+  readonly operation: "call";
+  readonly safeTxGas: "0";
+  readonly baseGas: "0";
+  readonly gasPrice: "0";
+  readonly gasToken: string;
+  readonly refundReceiver: string;
+  readonly nonce: string;
+  readonly safeTxHash: string;
+  readonly transactionAuthorization: "caller-owned-not-collected";
+  readonly submission: "not-submitted";
+  readonly proposalDigest: Sha256Digest;
+}
+
 export interface Eip1271VerificationInputV1 {
   readonly safeAddress: string;
   readonly digest: Sha256Digest;
@@ -480,6 +500,57 @@ function safeTxHash(input: {
     ]),
   );
   return `0x${bytesToHex(digest)}`;
+}
+
+export function createSafeCallProposal(input: {
+  readonly configuration: SafeConfigurationV1;
+  readonly policy: ApprovedSafePolicyV1;
+  readonly chainId: string;
+  readonly to: string;
+  readonly data: string;
+}): SafeCallProposalV1 {
+  assertClosedObject(input, "Safe call proposal input", [
+    "configuration",
+    "policy",
+    "chainId",
+    "to",
+    "data",
+  ]);
+  const configuration = validateSafeConfiguration(
+    input.configuration,
+    input.policy,
+  );
+  assertUint256Decimal(input.chainId, "chainId");
+  assertAddress(input.to, "to");
+  assertBytes(input.data, "data");
+  const withoutDigest: Omit<SafeCallProposalV1, "proposalDigest"> = {
+    schemaVersion: "cork.safe-call-proposal/v1",
+    safeConfiguration: configuration,
+    authorityDigest: safeAuthorityDigest(configuration),
+    to: input.to,
+    value: "0",
+    data: input.data,
+    operation: "call",
+    safeTxGas: "0",
+    baseGas: "0",
+    gasPrice: "0",
+    gasToken: ZERO_ADDRESS,
+    refundReceiver: ZERO_ADDRESS,
+    nonce: configuration.nonce,
+    safeTxHash: safeTxHash({
+      safeAddress: configuration.safeAddress,
+      chainId: input.chainId,
+      to: input.to,
+      data: input.data,
+      nonce: configuration.nonce,
+    }),
+    transactionAuthorization: "caller-owned-not-collected",
+    submission: "not-submitted",
+  };
+  return deepFreeze({
+    ...withoutDigest,
+    proposalDigest: sha256CanonicalJson(withoutDigest as unknown as JsonValue),
+  }) as SafeCallProposalV1;
 }
 
 function validatePermitAuthorization(

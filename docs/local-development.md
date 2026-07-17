@@ -40,6 +40,17 @@ Construct a paired-share unwind for the default market:
 npm run mcp:safe-demo
 ```
 
+Construct a proposal for every supported action profile:
+
+```
+npm run mcp:safe-coverage
+```
+
+This covers `safeUnwindMint`, `safeDeposit`, `safeMint`, `safeUnwindSwap`,
+`safeUnwindDeposit`, and `safeRedeem` with sequential fixture Safe nonces. The
+result proves canonical preparation, calldata construction, and Safe hashing;
+it does not claim chain execution or Safe confirmation.
+
 Choose a market and vary the amounts or Safe nonce:
 
 ```
@@ -83,10 +94,31 @@ For a client-managed process, build once and configure the client to invoke Node
 
 Use the absolute path returned by `command -v node` while Node.js 22 is active. Do not configure a client to run `npm run mcp:dev`: npm may write lifecycle banners to standard output. Direct execution keeps the protocol stream clean.
 
+## Query live current and past markets
+
+Run the opt-in read-only integration client:
+
+```
+npm run mcp:live-read
+```
+
+The client calls the official Phoenix application programming interface through
+the canonical Node adapter and the full Model Context Protocol transport. It
+checks all, current, and expired pools as well as flows, whitelist entries,
+limit-order markets, orderbook entries, and fills. Add `--json` for structured
+output.
+
+Live-read mode allows HTTP `GET` requests only and exposes no construction,
+signing, submission, or broadcast tools. Start that server mode directly with:
+
+```
+node packages/gateway/dist/dev-server.js --live-read --quiet
+```
+
 ## Fixture behavior
 
 - The complete stable static tool catalog is discoverable, subject to the same scope, capability, closed-input, and bounded-work checks as the gateway.
-- Two additional `cork.local.*` tools exist only in the local fixture router. They cannot appear in the production static catalog.
+- Three additional `cork.local.*` tools exist only in the local fixture router. They cannot appear in the production static catalog.
 - The seven capped-input capability variants remain unavailable and undiscoverable.
 - Capability maturity uses deterministic local fixture identities and digests.
 - Stable hosted-tool handlers remain in-memory echoes. The local market-list and Safe-unwind handlers call the canonical Cork operation core and return deterministic fixture artifacts.

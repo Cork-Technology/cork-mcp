@@ -28,6 +28,9 @@
       "$ref": "#/$defs/safePermitAuthorization"
     },
     {
+      "$ref": "#/$defs/safeCallProposal"
+    },
+    {
       "$ref": "#/$defs/safeExecutionWrapper"
     },
     {
@@ -1299,6 +1302,82 @@
           "const": "caller-owned-not-collected"
         },
         "wrapperDigest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "safeCallProposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "safeConfiguration",
+        "authorityDigest",
+        "to",
+        "value",
+        "data",
+        "operation",
+        "safeTxGas",
+        "baseGas",
+        "gasPrice",
+        "gasToken",
+        "refundReceiver",
+        "nonce",
+        "safeTxHash",
+        "transactionAuthorization",
+        "submission",
+        "proposalDigest"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "cork.safe-call-proposal/v1"
+        },
+        "safeConfiguration": {
+          "$ref": "#/$defs/safeConfiguration"
+        },
+        "authorityDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "to": {
+          "$ref": "#/$defs/address"
+        },
+        "value": {
+          "const": "0"
+        },
+        "data": {
+          "$ref": "#/$defs/bytes"
+        },
+        "operation": {
+          "const": "call"
+        },
+        "safeTxGas": {
+          "const": "0"
+        },
+        "baseGas": {
+          "const": "0"
+        },
+        "gasPrice": {
+          "const": "0"
+        },
+        "gasToken": {
+          "const": "0x0000000000000000000000000000000000000000"
+        },
+        "refundReceiver": {
+          "const": "0x0000000000000000000000000000000000000000"
+        },
+        "nonce": {
+          "$ref": "#/$defs/uint"
+        },
+        "safeTxHash": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "transactionAuthorization": {
+          "const": "caller-owned-not-collected"
+        },
+        "submission": {
+          "const": "not-submitted"
+        },
+        "proposalDigest": {
           "$ref": "#/$defs/sha256"
         }
       }

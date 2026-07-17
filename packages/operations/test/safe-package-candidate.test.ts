@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import {
   authorizeSafePermitMessages,
   createDirectPackageCandidate,
+  createSafeCallProposal,
   createSafeExecutionWrapper,
   rebuildSafeWrapperForNonce,
   type ApprovedSafePolicyV1,
@@ -100,6 +101,32 @@ function assertClosedObjects(value: unknown, path = "$"): void {
 }
 
 describe("Safe separation and immutable direct package identity", () => {
+  it("constructs a generic caller-owned Safe call without signatures or submission", () => {
+    const proposal = createSafeCallProposal({
+      configuration: configuration(),
+      policy: POLICY,
+      chainId: "1",
+      to: address("7"),
+      data: "0x1234",
+    });
+
+    expect(proposal).toMatchObject({
+      schemaVersion: "cork.safe-call-proposal/v1",
+      value: "0",
+      operation: "call",
+      safeTxGas: "0",
+      baseGas: "0",
+      gasPrice: "0",
+      nonce: "7",
+      transactionAuthorization: "caller-owned-not-collected",
+      submission: "not-submitted",
+    });
+    expect(proposal.safeTxHash).toMatch(/^0x[0-9a-f]{64}$/u);
+    expect(proposal.proposalDigest).toMatch(/^sha256:[0-9a-f]{64}$/u);
+    expect(JSON.stringify(proposal)).not.toContain("signature");
+    expect(JSON.stringify(proposal)).not.toContain("confirmation");
+  });
+
   it("validates two distinct Safe messages before creating a caller-owned wrapper", () => {
     const verifyCalls: unknown[] = [];
     const authorization = authorizeSafePermitMessages(

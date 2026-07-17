@@ -4,21 +4,23 @@ import {
   createLocalFixtureGateway,
   LOCAL_FIXTURE_NOTICE,
 } from "./dev-fixture.js";
+import { createLocalLiveReadGateway, PHOENIX_API_ORIGIN } from "./live-read.js";
 import { startStdioServer } from "./stable.js";
 
 const VERSION = "0.1.0";
 const HELP = `Cork local fixture Model Context Protocol server
 
-Usage: cork-mcp-dev [--quiet]
+Usage: cork-mcp-dev [--live-read] [--quiet]
 
 Options:
+  --live-read  Enable read-only requests to the public Phoenix API
   --quiet    Suppress the fixture warning on stderr
   --help     Print this help and exit
   --version  Print the server version and exit
 
-The no-argument and --quiet forms start a standard-input/output server.
-This fixture performs no network calls, production signature verification,
-Safe confirmation, submission, broadcast, or persistence.
+The server uses standard input/output. Without --live-read it is fully local.
+Live-read mode permits GET requests only to the configured public Phoenix API.
+Neither mode signs, confirms, submits, broadcasts, or persists transactions.
 `;
 
 function fail(message: string, exitCode: number): never {
@@ -46,18 +48,30 @@ async function main(): Promise<void> {
     process.stdout.write(`${VERSION}\n`);
     return;
   }
-  const unknown = args.filter((arg) => arg !== "--quiet");
+  const unknown = args.filter(
+    (arg) => arg !== "--quiet" && arg !== "--live-read",
+  );
   if (unknown.length > 0) {
     fail(`Unknown argument: ${unknown.join(", ")}`, 2);
   }
   requireSupportedRuntime();
+  const liveRead = args.includes("--live-read");
   if (!args.includes("--quiet")) {
-    process.stderr.write(`[cork-mcp] ${LOCAL_FIXTURE_NOTICE}\n`);
+    process.stderr.write(
+      liveRead
+        ? `[cork-mcp] Live read-only mode: GET ${PHOENIX_API_ORIGIN}; responses remain untrusted source observations.\n`
+        : `[cork-mcp] ${LOCAL_FIXTURE_NOTICE}\n`,
+    );
   }
-  const fixture = createLocalFixtureGateway();
+  const gateway = liveRead
+    ? createLocalLiveReadGateway({
+        fetch: (input, init) => fetch(input, init),
+        now: () => Date.now().toString(),
+      })
+    : createLocalFixtureGateway();
   await startStdioServer({
-    router: fixture.router,
-    principal: fixture.principal,
+    router: gateway.router,
+    principal: gateway.principal,
   });
 }
 

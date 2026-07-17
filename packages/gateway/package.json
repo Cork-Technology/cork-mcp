@@ -1,7 +1,7 @@
 {
   "name": "@corkprotocol/gateway",
   "version": "0.1.0",
-  "description": "Transport-neutral hosted router and controls for Cork operation packages.",
+  "description": "Cork Protocol Model Context Protocol server, routing controls, and local integration tools.",
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -23,6 +23,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "node --enable-source-maps dist/dev-server.js",
+    "live-read": "node --enable-source-maps dist/dev-live-read.js",
     "safe-demo": "node --enable-source-maps dist/dev-safe-demo.js",
     "smoke": "node --enable-source-maps dist/dev-smoke.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",

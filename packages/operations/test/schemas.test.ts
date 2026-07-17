@@ -21,6 +21,7 @@ const SCHEMAS = {
       "cork.exact-spend-action/v1",
       "cork.capped-input-unavailable/v1",
       "cork.safe-permit-authorization/v1",
+      "cork.safe-call-proposal/v1",
       "cork.safe-execution-wrapper/v1",
       "cork.direct-package-candidate/v1",
     ],
