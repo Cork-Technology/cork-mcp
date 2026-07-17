@@ -1,0 +1,85 @@
+name: Continuous integration
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.17.0
+          check-latest: false
+
+      - name: Verify runtime policy
+        run: npm run check:runtime
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -eu
+          if [ -f package-lock.json ]; then
+            npm ci --ignore-scripts --no-audit --no-fund
+          else
+            echo "::warning::package-lock.json is absent; using a non-locking foundation install."
+            npm install --ignore-scripts --no-audit --no-fund --package-lock=false
+          fi
+
+      - name: Run aggregate quality gate
+        run: npm run ci
+
+      - name: Audit full dependency graph
+        run: npm audit --audit-level=info
+
+      - name: Audit production dependency graph
+        run: npm audit --omit=dev --audit-level=info
+
+  signing-gate:
+    name: Signing gate Rust verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    defaults:
+      run:
+        working-directory: crates/signing-gate
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Check Rust formatting
+        run: cargo fmt --check
+
+      - name: Run Rust lint
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Run Rust tests
+        run: cargo test --all-features
+
+      - name: Install WebAssembly target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Check WebAssembly build
+        run: cargo check --target wasm32-unknown-unknown --features wasm
