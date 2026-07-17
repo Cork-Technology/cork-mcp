@@ -282,6 +282,8 @@ fn deny_mutation_vectors() {
         GateDecisionKindV1::Deny
     );
 
+    let mut stale_request = base.clone();
+    stale_request.decision_time_ms = verified.maximum_observation_age_ms + 1;
     let mut stale_values = observations(&base);
     stale_values
         .iter_mut()
@@ -291,7 +293,7 @@ fn deny_mutation_vectors() {
         stale_values,
     );
     assert_eq!(
-        evaluate_gate(&base, &verified, &stale, &simulation_port)
+        evaluate_gate(&stale_request, &verified, &stale, &simulation_port)
             .expect("deny")
             .decision,
         GateDecisionKindV1::Deny
