@@ -19,6 +19,23 @@ From the repository root:
 2. Run `npm ci` against the committed lockfile.
 3. Run `npm run ci`.
 
+## Run the local fixture server
+
+After installing dependencies, build the workspaces and run the real standard-input/output protocol smoke test:
+
+```
+npm run build
+npm run mcp:smoke
+```
+
+To start the fixture server manually:
+
+```
+npm run mcp:dev
+```
+
+The process waits for a Model Context Protocol client on standard input/output. It performs no network calls, signing, transaction submission, broadcast, or persistence. Every successful handler response is explicitly labeled `fixtureOnly: true`. See [the local development guide](./docs/local-development.md) for client configuration, safety properties, and troubleshooting.
+
 The latest recorded Node.js baseline passed formatting, linting, typechecking, builds, unit and boundary tests, audits, and the root continuous-integration command. Rust formatting, linting, native tests, and WebAssembly verification were not executed in that local baseline.
 
 ## Workspace map
@@ -52,6 +69,8 @@ The detailed dependency and release contracts are in [ARCHITECTURE.md](./ARCHITE
 | `npm run typecheck`       | Run every workspace TypeScript check that exists.               |
 | `npm run lint`            | Run every workspace lint script that exists.                    |
 | `npm run format:check`    | Check repository formatting with the pinned formatter.          |
+| `npm run mcp:smoke`       | Perform a real client/server standard-input/output handshake.   |
+| `npm run mcp:dev`         | Start the fixture-only local Model Context Protocol server.     |
 | `npm run test:unit`       | Run workspace unit-test scripts.                                |
 | `npm run test:boundaries` | Run browser/Node and package-dependency boundary suites.        |
 | `npm run test`            | Run unit and boundary suites.                                   |

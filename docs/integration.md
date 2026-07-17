@@ -49,6 +49,8 @@ An integrating deployment must inject:
 
 No hosted network endpoint or credential shape is declared here. The stable adapter can be composed by an accountable deployer, but the repository does not claim that such a production composition exists.
 
+For protocol exploration without production dependencies, [`docs/local-development.md`](./local-development.md) documents the fixture-only standard-input/output server. That server uses in-memory handlers, labels every response as fixture data, and performs no external or custodial action.
+
 ### Canonical result and transport metadata
 
 A successful gateway call returns:
