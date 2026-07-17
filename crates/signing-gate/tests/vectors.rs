@@ -271,12 +271,12 @@ fn deny_mutation_vectors() {
             })
             .collect(),
     );
-    let simulations = StaticSimulationPort::new(
+    let simulation_port = StaticSimulationPort::new(
         vec!["gate-provider-a".to_owned(), "gate-provider-b".to_owned()],
         simulations(&base),
     );
     assert_eq!(
-        evaluate_gate(&base, &verified, &missing_external, &simulations)
+        evaluate_gate(&base, &verified, &missing_external, &simulation_port)
             .expect("deny")
             .decision,
         GateDecisionKindV1::Deny
@@ -291,7 +291,7 @@ fn deny_mutation_vectors() {
         stale_values,
     );
     assert_eq!(
-        evaluate_gate(&base, &verified, &stale, &simulations)
+        evaluate_gate(&base, &verified, &stale, &simulation_port)
             .expect("deny")
             .decision,
         GateDecisionKindV1::Deny
@@ -304,7 +304,7 @@ fn deny_mutation_vectors() {
         disagree_values,
     );
     assert_eq!(
-        evaluate_gate(&base, &verified, &disagree, &simulations)
+        evaluate_gate(&base, &verified, &disagree, &simulation_port)
             .expect("deny")
             .decision,
         GateDecisionKindV1::Deny
@@ -317,9 +317,14 @@ fn deny_mutation_vectors() {
         observations(&base),
     );
     assert_eq!(
-        evaluate_gate(&bytes_changed, &verified, &good_observations, &simulations)
-            .expect("deny")
-            .decision,
+        evaluate_gate(
+            &bytes_changed,
+            &verified,
+            &good_observations,
+            &simulation_port,
+        )
+        .expect("deny")
+        .decision,
         GateDecisionKindV1::Deny
     );
 
