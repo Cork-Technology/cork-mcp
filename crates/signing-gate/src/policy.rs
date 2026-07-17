@@ -218,8 +218,12 @@ fn sha256_prefixed(bytes: &[u8]) -> String {
 }
 
 fn canonical_digest<T: Serialize>(value: &T) -> Result<String, PolicyValidationErrorV1> {
-    let bytes = serde_jcs::to_vec(value)
-        .map_err(|_| validation_error("POLICY_CANONICALIZATION_FAILED", "policy projection could not be canonicalized"))?;
+    let bytes = serde_jcs::to_vec(value).map_err(|_| {
+        validation_error(
+            "POLICY_CANONICALIZATION_FAILED",
+            "policy projection could not be canonicalized",
+        )
+    })?;
     Ok(sha256_prefixed(&bytes))
 }
 
@@ -249,9 +253,9 @@ pub fn compute_policy_digest(
 }
 
 fn decode_verifying_key(encoded: &str) -> Result<VerifyingKey, PolicyValidationErrorV1> {
-    let bytes = BASE64
-        .decode(encoded)
-        .map_err(|_| validation_error("POLICY_KEY_INVALID", "verification key is not valid base64"))?;
+    let bytes = BASE64.decode(encoded).map_err(|_| {
+        validation_error("POLICY_KEY_INVALID", "verification key is not valid base64")
+    })?;
     let array: [u8; 32] = bytes
         .try_into()
         .map_err(|_| validation_error("POLICY_KEY_INVALID", "verification key must be 32 bytes"))?;
@@ -264,13 +268,17 @@ fn verify_signature(
     signature_base64: &str,
     message: &[u8],
 ) -> Result<(), PolicyValidationErrorV1> {
-    let bytes = BASE64
-        .decode(signature_base64)
-        .map_err(|_| validation_error("POLICY_SIGNATURE_INVALID", "signature is not valid base64"))?;
+    let bytes = BASE64.decode(signature_base64).map_err(|_| {
+        validation_error("POLICY_SIGNATURE_INVALID", "signature is not valid base64")
+    })?;
     let signature = Signature::from_slice(&bytes)
         .map_err(|_| validation_error("POLICY_SIGNATURE_INVALID", "signature must be 64 bytes"))?;
-    key.verify(message, &signature)
-        .map_err(|_| validation_error("POLICY_SIGNATURE_INVALID", "Ed25519 signature verification failed"))
+    key.verify(message, &signature).map_err(|_| {
+        validation_error(
+            "POLICY_SIGNATURE_INVALID",
+            "Ed25519 signature verification failed",
+        )
+    })
 }
 
 fn exact_policy_path(policy_id: &str, generation: u64) -> String {
@@ -278,9 +286,7 @@ fn exact_policy_path(policy_id: &str, generation: u64) -> String {
 }
 
 fn validate_ordered_unique(values: &[String], code: &str) -> Result<(), PolicyValidationErrorV1> {
-    if values.is_empty()
-        || values.windows(2).any(|pair| pair[0] >= pair[1])
-    {
+    if values.is_empty() || values.windows(2).any(|pair| pair[0] >= pair[1]) {
         return Err(validation_error(
             code,
             "values must be unique and strictly ordered",
@@ -294,10 +300,12 @@ fn validate_tombstone(
     context: &PolicyVerificationContextV1,
     keys: &BTreeMap<String, VerifyingKey>,
 ) -> Result<(), PolicyValidationErrorV1> {
-    let tombstone = policy
-        .tombstone
-        .as_ref()
-        .ok_or_else(|| validation_error("POLICY_TOMBSTONE_REQUIRED", "emergency-disabled policy requires a tombstone"))?;
+    let tombstone = policy.tombstone.as_ref().ok_or_else(|| {
+        validation_error(
+            "POLICY_TOMBSTONE_REQUIRED",
+            "emergency-disabled policy requires a tombstone",
+        )
+    })?;
     if tombstone.previous_status != PolicyStatusV1::Active
         || tombstone.new_status != PolicyStatusV1::EmergencyDisabled
         || tombstone.policy_digest != policy.policy_digest
@@ -318,9 +326,12 @@ fn validate_tombstone(
             "deployment key cannot sign a Security Engineering tombstone",
         ));
     }
-    let key = keys
-        .get(&tombstone.key_id)
-        .ok_or_else(|| validation_error("POLICY_TOMBSTONE_KEY_UNAPPROVED", "tombstone key is not approved"))?;
+    let key = keys.get(&tombstone.key_id).ok_or_else(|| {
+        validation_error(
+            "POLICY_TOMBSTONE_KEY_UNAPPROVED",
+            "tombstone key is not approved",
+        )
+    })?;
     let projection = TombstoneDigestProjection {
         policy_id: &policy.policy_id,
         generation: policy.generation,
@@ -380,8 +391,11 @@ pub fn verify_policy_generation(
         &policy.trust_root.approved_key_ids,
         "POLICY_KEYRING_ORDER_INVALID",
     )?;
-    let deployment_keys: BTreeSet<_> =
-        context.deployment_signature_key_ids.iter().cloned().collect();
+    let deployment_keys: BTreeSet<_> = context
+        .deployment_signature_key_ids
+        .iter()
+        .cloned()
+        .collect();
     if policy
         .trust_root
         .approved_key_ids
@@ -402,7 +416,10 @@ pub fn verify_policy_generation(
             ));
         }
         if keys
-            .insert(key.key_id.clone(), decode_verifying_key(&key.public_key_base64)?)
+            .insert(
+                key.key_id.clone(),
+                decode_verifying_key(&key.public_key_base64)?,
+            )
             .is_some()
         {
             return Err(validation_error(
@@ -451,8 +468,11 @@ pub fn verify_policy_generation(
             "policy digest does not match the RFC 8785 projection",
         ));
     }
-    let signature_key_ids: Vec<_> =
-        policy.signatures.iter().map(|signature| signature.key_id.clone()).collect();
+    let signature_key_ids: Vec<_> = policy
+        .signatures
+        .iter()
+        .map(|signature| signature.key_id.clone())
+        .collect();
     match policy.status {
         PolicyStatusV1::Active | PolicyStatusV1::Retired => {
             if policy.signatures.len() != 2 || policy.tombstone.is_some() {
@@ -493,10 +513,17 @@ pub fn verify_policy_generation(
                 "signature algorithm, digest, or root identity is invalid",
             ));
         }
-        let key = keys
-            .get(&signature.key_id)
-            .ok_or_else(|| validation_error("POLICY_SIGNATURE_KEY_UNAPPROVED", "signature key is not approved"))?;
-        verify_signature(key, &signature.signature_base64, policy.policy_digest.as_bytes())?;
+        let key = keys.get(&signature.key_id).ok_or_else(|| {
+            validation_error(
+                "POLICY_SIGNATURE_KEY_UNAPPROVED",
+                "signature key is not approved",
+            )
+        })?;
+        verify_signature(
+            key,
+            &signature.signature_base64,
+            policy.policy_digest.as_bytes(),
+        )?;
     }
     Ok(VerifiedPolicyGenerationV1 {
         schema_version: POLICY_SCHEMA_VERSION.to_owned(),
@@ -508,16 +535,9 @@ pub fn verify_policy_generation(
         policy_digest: policy.policy_digest.clone(),
         allowed_gate_build_digest: policy.canonical_payload.allowed_gate_build_digest.clone(),
         allowed_deployment_ids: policy.canonical_payload.allowed_deployment_ids.clone(),
-        approved_account_components: policy
-            .canonical_payload
-            .approved_account_components
-            .clone(),
-        require_independent_simulation: policy
-            .canonical_payload
-            .require_independent_simulation,
-        maximum_observation_age_ms: policy
-            .canonical_payload
-            .maximum_observation_age_ms,
+        approved_account_components: policy.canonical_payload.approved_account_components.clone(),
+        require_independent_simulation: policy.canonical_payload.require_independent_simulation,
+        maximum_observation_age_ms: policy.canonical_payload.maximum_observation_age_ms,
         maximum_head_lag: policy.canonical_payload.maximum_head_lag,
         trust_root_id: policy.trust_root.trust_root_id.clone(),
         signature_key_ids,

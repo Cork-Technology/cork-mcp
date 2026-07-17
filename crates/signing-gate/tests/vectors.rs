@@ -5,9 +5,9 @@ use cork_signing_gate::gate::{
 };
 use cork_signing_gate::policy::{
     compute_policy_digest, verify_policy_generation, PolicyGenerationV1, PolicyPayloadV1,
-    PolicySignatureV1, PolicyStatusV1, PolicyTrustRootV1, PolicyVerificationContextV1,
-    PublisherV1, RepositoryReleaseV1, ReviewPromotionV1, TransparencyRecordV1,
-    VerificationKeyV1, POLICY_REPOSITORY, POLICY_SCHEMA_VERSION, POLICY_TRUST_DOMAIN,
+    PolicySignatureV1, PolicyStatusV1, PolicyTrustRootV1, PolicyVerificationContextV1, PublisherV1,
+    RepositoryReleaseV1, ReviewPromotionV1, TransparencyRecordV1, VerificationKeyV1,
+    POLICY_REPOSITORY, POLICY_SCHEMA_VERSION, POLICY_TRUST_DOMAIN,
 };
 use ed25519_dalek::{Signer, SigningKey};
 use sha2::{Digest as _, Sha256};
@@ -65,10 +65,7 @@ fn unsigned_policy() -> PolicyGenerationV1 {
             trust_root_id: "security-root-v1".to_owned(),
             owner: "Security Engineering".to_owned(),
             offline: true,
-            approved_key_ids: vec![
-                "security-key-a".to_owned(),
-                "security-key-b".to_owned(),
-            ],
+            approved_key_ids: vec!["security-key-a".to_owned(), "security-key-b".to_owned()],
             threshold: 2,
         },
         signatures: Vec::new(),
@@ -114,7 +111,8 @@ fn signed_policy() -> (PolicyGenerationV1, PolicyVerificationContextV1) {
             key_id: "security-key-b".to_owned(),
             algorithm: "ed25519".to_owned(),
             policy_digest: policy.policy_digest.clone(),
-            signature_base64: BASE64.encode(second.sign(policy.policy_digest.as_bytes()).to_bytes()),
+            signature_base64: BASE64
+                .encode(second.sign(policy.policy_digest.as_bytes()).to_bytes()),
         },
     ];
     (policy, context(&first, &second))
@@ -155,9 +153,8 @@ fn observations(request: &GateRequestV1) -> Vec<RawGateObservationV1> {
             block_number: 100,
             block_hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
                 .to_owned(),
-            parent_hash:
-                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-                    .to_owned(),
+            parent_hash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                .to_owned(),
             head_number: 101,
             observed_at_ms: 9_990,
             manifest_generation: request.manifest_generation,
@@ -286,7 +283,9 @@ fn deny_mutation_vectors() {
     );
 
     let mut stale_values = observations(&base);
-    stale_values.iter_mut().for_each(|value| value.observed_at_ms = 0);
+    stale_values
+        .iter_mut()
+        .for_each(|value| value.observed_at_ms = 0);
     let stale = StaticObservationPort::new(
         vec!["gate-provider-a".to_owned(), "gate-provider-b".to_owned()],
         stale_values,

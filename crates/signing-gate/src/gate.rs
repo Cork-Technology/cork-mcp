@@ -262,17 +262,26 @@ fn keccak256_prefixed(bytes: &[u8]) -> String {
     format!("keccak256:{}", hex::encode(Keccak256::digest(bytes)))
 }
 
-fn decision_digest(
-    decision: &GateDecisionV1,
-) -> Result<String, GateValidationErrorV1> {
-    let mut value = serde_json::to_value(decision)
-        .map_err(|_| validation_error("GATE_SERIALIZATION_FAILED", "gate decision could not be serialized"))?;
-    let object = value
-        .as_object_mut()
-        .ok_or_else(|| validation_error("GATE_SERIALIZATION_FAILED", "gate decision must serialize as an object"))?;
+fn decision_digest(decision: &GateDecisionV1) -> Result<String, GateValidationErrorV1> {
+    let mut value = serde_json::to_value(decision).map_err(|_| {
+        validation_error(
+            "GATE_SERIALIZATION_FAILED",
+            "gate decision could not be serialized",
+        )
+    })?;
+    let object = value.as_object_mut().ok_or_else(|| {
+        validation_error(
+            "GATE_SERIALIZATION_FAILED",
+            "gate decision must serialize as an object",
+        )
+    })?;
     object.remove("decisionDigest");
-    let bytes = serde_jcs::to_vec(&value)
-        .map_err(|_| validation_error("GATE_CANONICALIZATION_FAILED", "gate decision could not be canonicalized"))?;
+    let bytes = serde_jcs::to_vec(&value).map_err(|_| {
+        validation_error(
+            "GATE_CANONICALIZATION_FAILED",
+            "gate decision could not be canonicalized",
+        )
+    })?;
     Ok(sha256_prefixed(&bytes))
 }
 
@@ -342,7 +351,9 @@ fn provider_set_is_independent(
     let observed: BTreeSet<_> = observed_provider_ids.iter().collect();
     observed.len() == observed_provider_ids.len()
         && observed.len() >= 2
-        && observed.iter().all(|provider| configured.contains(*provider))
+        && observed
+            .iter()
+            .all(|provider| configured.contains(*provider))
         && observed
             .iter()
             .any(|provider| !core_provider_ids.contains(provider))
@@ -359,9 +370,11 @@ pub fn evaluate_gate(
         checks: Vec::new(),
     };
     let policy_active = policy.status == PolicyStatusV1::Active;
-    bindings
-        .checks
-        .push(check("policy-active", policy_active, "policy must be active"));
+    bindings.checks.push(check(
+        "policy-active",
+        policy_active,
+        "policy must be active",
+    ));
     if !policy_active {
         return bindings.deny(
             unavailable_simulation("policy is not active"),
@@ -372,7 +385,9 @@ pub fn evaluate_gate(
     let policy_identity = request.policy_generation == policy.generation
         && request.policy_digest == policy.policy_digest
         && request.gate_build.build_digest == policy.allowed_gate_build_digest
-        && policy.allowed_deployment_ids.contains(&request.deployment_id)
+        && policy
+            .allowed_deployment_ids
+            .contains(&request.deployment_id)
         && policy
             .approved_account_components
             .contains(&request.account_component_id);
@@ -388,12 +403,14 @@ pub fn evaluate_gate(
             "Present the exact policy-bound build, deployment, and account component.",
         );
     }
-    let finalized_bytes = BASE64.decode(&request.finalized_bytes_base64).map_err(|_| {
-        validation_error(
-            "FINALIZED_BYTES_INVALID",
-            "finalized bytes must be padded standard base64",
-        )
-    })?;
+    let finalized_bytes = BASE64
+        .decode(&request.finalized_bytes_base64)
+        .map_err(|_| {
+            validation_error(
+                "FINALIZED_BYTES_INVALID",
+                "finalized bytes must be padded standard base64",
+            )
+        })?;
     let payload_matches = sha256_prefixed(&finalized_bytes) == request.payload_digest;
     bindings.checks.push(check(
         "payload-digest",
