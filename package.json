@@ -30,6 +30,7 @@
     "mcp:safe-demo": "npm run build --silent && npm run safe-demo --workspace @corkprotocol/gateway --",
     "mcp:smoke": "npm run build && npm run smoke --workspace @corkprotocol/gateway",
     "test": "npm run test:unit && npm run test:boundaries",
+    "test:historical-mint": "forge test --root tools/fork --match-path test/LiveMarketMint.t.sol --fork-url \"${ARBITRUM_RPC_URL:-https://arbitrum-one.public.blastapi.io}\" --fork-block-number 482789214 --evm-version cancun -vv",
     "test:unit": "npm test --workspace @corkprotocol/operations && npm test --workspace @corkprotocol/operations-node && npm test --workspace @corkprotocol/gateway && npm test --workspace @corkprotocol/conformance",
     "test:boundaries": "npm run test:boundaries --workspaces --if-present",
     "ci": "npm run check:runtime && npm run clean:dist && npm run format:check && npm run build && npm run lint && npm run typecheck && npm run test"

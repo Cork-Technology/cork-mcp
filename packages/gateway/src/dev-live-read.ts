@@ -60,6 +60,16 @@ interface SuccessfulRead {
   readonly items: readonly unknown[];
 }
 
+interface MarketSnapshot {
+  readonly poolId: string;
+  readonly poolName: string;
+  readonly chainId: number;
+  readonly expiry: string;
+  readonly isWhitelistEnabled: boolean;
+  readonly isDepositPaused: boolean;
+  readonly collateralSymbol: string;
+}
+
 function fail(message: string): never {
   throw new Error(message);
 }
@@ -108,6 +118,32 @@ function assertPoolPartition(
       );
     }
   }
+}
+
+function marketSnapshot(value: unknown, label: string): MarketSnapshot {
+  const pool = record(value);
+  const collateral = record(pool?.["collateralToken"]);
+  if (
+    pool === undefined ||
+    typeof pool["poolId"] !== "string" ||
+    typeof pool["poolName"] !== "string" ||
+    typeof pool["chainId"] !== "number" ||
+    typeof pool["expiry"] !== "string" ||
+    typeof pool["isWhitelistEnabled"] !== "boolean" ||
+    typeof pool["isDepositPaused"] !== "boolean" ||
+    typeof collateral?.["symbol"] !== "string"
+  ) {
+    fail(`${label} contained an incomplete market record`);
+  }
+  return {
+    poolId: pool["poolId"],
+    poolName: pool["poolName"],
+    chainId: pool["chainId"],
+    expiry: pool["expiry"],
+    isWhitelistEnabled: pool["isWhitelistEnabled"],
+    isDepositPaused: pool["isDepositPaused"],
+    collateralSymbol: collateral["symbol"],
+  };
 }
 
 function summarize(envelope: RouterEnvelope, label: string): SuccessfulRead {
@@ -241,6 +277,12 @@ if (args.includes("--help")) {
     );
     assertPoolPartition(currentPools.items, cutoff, "current");
     assertPoolPartition(pastPools.items, cutoff, "past");
+    const currentMarketSnapshot = currentPools.items.map((item) =>
+      marketSnapshot(item, "current pool response"),
+    );
+    const pastMarketSnapshot = pastPools.items.map((item) =>
+      marketSnapshot(item, "past pool response"),
+    );
     const firstPool = record(currentPools.items[0] ?? allPools.items[0]);
     const poolId = firstPool?.["poolId"];
     if (firstPool === undefined || typeof poolId !== "string") {
@@ -292,6 +334,15 @@ if (args.includes("--help")) {
         orderbook: orderbook.summary,
         fills: fills.summary,
       },
+      markets: {
+        current: currentMarketSnapshot,
+        currentWithoutWhitelist: currentMarketSnapshot.filter(
+          (market) => !market.isWhitelistEnabled,
+        ),
+        pastWithoutWhitelist: pastMarketSnapshot.filter(
+          (market) => !market.isWhitelistEnabled,
+        ),
+      },
       safety: {
         methods: ["GET"],
         writeToolsExposed: false,
@@ -306,6 +357,7 @@ if (args.includes("--help")) {
         ([name, value]) =>
           `- ${name}: ${value.items} items, ${value.pages} page(s), HTTP ${value.statusCodes.join(",")}`,
       );
+      const unwhitelisted = summary.markets.currentWithoutWhitelist;
       process.stdout.write(
         [
           "Cork live read-only integration test passed.",
@@ -314,6 +366,11 @@ if (args.includes("--help")) {
           `Cutoff: ${summary.cutoff}`,
           `Selected pool: ${String(summary.selectedPool.poolName)} (${summary.selectedPool.poolId})`,
           ...lines,
+          `Current markets without a whitelist: ${unwhitelisted.length}`,
+          ...unwhitelisted.map(
+            (market) =>
+              `  - ${market.poolName} (${market.poolId}, chain ${market.chainId})`,
+          ),
           "Safety: GET only; no write tools exposed; source data remained untrusted",
           "",
         ].join("\n"),

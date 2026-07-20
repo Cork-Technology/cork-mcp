@@ -115,6 +115,32 @@ signing, submission, or broadcast tools. Start that server mode directly with:
 node packages/gateway/dist/dev-server.js --live-read --quiet
 ```
 
+Filter the validated current market snapshot to markets without a whitelist:
+
+```
+npm run mcp:live-read -- --json \
+  | sed -n '/^{/,$p' \
+  | jq '.markets.currentWithoutWhitelist'
+```
+
+An empty array means no current market satisfies the filter. It is not safe to
+fall back silently to an expired or whitelist-enabled market.
+
+## Simulate the pinned historical mint
+
+With Foundry installed, run:
+
+```
+npm run test:historical-mint
+```
+
+The test forks Arbitrum at block `482789214`, before the whitelist-disabled
+`USDC-yoUSD-12JUL2026` market expired. It uses fork-only balance mutation to
+fund an isolated account with 1 USDC, calls the real deployed Bundler3 and Cork
+adapter, and asserts a 1 cPT plus 1 cST mint with no adapter residue. No
+transaction is broadcast. Set `ARBITRUM_RPC_URL` to an archive-capable endpoint
+to override the public fallback.
+
 ## Fixture behavior
 
 - The complete stable static tool catalog is discoverable, subject to the same scope, capability, closed-input, and bounded-work checks as the gateway.

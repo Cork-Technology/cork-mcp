@@ -109,6 +109,35 @@ The command calls `https://api-phoenix.cork.tech` through the Model Context Prot
 
 Live-read mode exposes only capability and read tools. It permits HTTP `GET` requests to the configured Phoenix origin and does not expose preparation, signing, submission, or broadcast tools. Add `--json` for a machine-readable result.
 
+List the current markets whose whitelist is disabled:
+
+```
+npm run mcp:live-read -- --json \
+  | sed -n '/^{/,$p' \
+  | jq '.markets.currentWithoutWhitelist'
+```
+
+The result can legitimately be empty. Never substitute an expired market or a
+whitelist-enabled market when preparing a current transaction.
+
+## Simulate a mint against a deployed market
+
+The repository includes a pinned historical-fork test for the Arbitrum
+`USDC-yoUSD-12JUL2026` market. The market had its whitelist disabled and was
+active at the pinned block. The test gives its isolated test account 1 USDC,
+calls the real deployed Bundler3 and Cork adapter, and verifies that exactly 1
+cPT and 1 cST are minted with no collateral left on the adapter.
+
+Install [Foundry](https://getfoundry.sh/getting-started/installation) and run:
+
+```
+npm run test:historical-mint
+```
+
+Set `ARBITRUM_RPC_URL` to an archive-capable Arbitrum endpoint if the public
+fallback is unavailable. The command runs entirely on a local fork and omits
+Foundry's `--broadcast` option.
+
 ## Connect a Model Context Protocol client
 
 Build once, then configure the client to start the server directly with Node.js 22:
