@@ -3,8 +3,8 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 interface FixtureCallResult {
-  readonly ok?: unknown;
-  readonly coreResult?: {
+  readonly state?: unknown;
+  readonly data?: {
     readonly fixtureOnly?: unknown;
     readonly broadcastReady?: unknown;
     readonly markets?: readonly {
@@ -68,39 +68,36 @@ const client = new Client(
 try {
   await client.connect(transport);
   const listed = await client.listTools();
-  if (!listed.tools.some((tool) => tool.name === "cork.capabilities.v1")) {
-    throw new Error("cork.capabilities.v1 was not discovered");
+  if (!listed.tools.some((tool) => tool.name === "cork_capabilities")) {
+    throw new Error("cork_capabilities was not discovered");
   }
-  for (const name of [
-    "cork.local.markets.list.v1",
-    "cork.local.safe.unwind.prepare.v1",
-  ]) {
+  for (const name of ["cork_query", "cork_prepare_phoenix"]) {
     if (!listed.tools.some((tool) => tool.name === name)) {
       throw new Error(`${name} was not discovered`);
     }
   }
   const called = await client.callTool({
-    name: "cork.capabilities.v1",
+    name: "cork_capabilities",
     arguments: {},
   });
   const result = parseCallResult(called.content, "capability call");
-  if (result.ok !== true || result.coreResult?.fixtureOnly !== true) {
+  if (result.state !== "ok" || result.data === undefined) {
     throw new Error("capability call was not a successful fixture response");
   }
 
   const listedMarkets = parseCallResult(
     (
       await client.callTool({
-        name: "cork.local.markets.list.v1",
-        arguments: {},
+        name: "cork_query",
+        arguments: { variant: "fixture-markets", input: {} },
       })
     ).content,
     "local market list",
   );
-  const market = listedMarkets.coreResult?.markets?.[0];
+  const market = listedMarkets.data?.markets?.[0];
   if (
-    listedMarkets.ok !== true ||
-    listedMarkets.coreResult?.fixtureOnly !== true ||
+    listedMarkets.state !== "ok" ||
+    listedMarkets.data?.fixtureOnly !== true ||
     typeof market?.id !== "string" ||
     typeof market.displayName !== "string"
   ) {
@@ -110,22 +107,25 @@ try {
   const prepared = parseCallResult(
     (
       await client.callTool({
-        name: "cork.local.safe.unwind.prepare.v1",
+        name: "cork_prepare_phoenix",
         arguments: {
-          marketId: market.id,
-          requestedSharesIn: "2500000000000",
-          minimumCollateralAssetsOut: "1000000",
-          safeNonce: "7",
+          variant: "fixture-safe-unwind",
+          input: {
+            marketId: market.id,
+            requestedSharesIn: "2500000000000",
+            minimumCollateralAssetsOut: "1000000",
+            safeNonce: "7",
+          },
         },
       })
     ).content,
     "local Safe unwind preparation",
   );
-  const safeTransaction = prepared.coreResult?.safeTransaction;
+  const safeTransaction = prepared.data?.safeTransaction;
   if (
-    prepared.ok !== true ||
-    prepared.coreResult?.fixtureOnly !== true ||
-    prepared.coreResult.broadcastReady !== false ||
+    prepared.state !== "ok" ||
+    prepared.data?.fixtureOnly !== true ||
+    prepared.data.broadcastReady !== false ||
     typeof safeTransaction?.to !== "string" ||
     typeof safeTransaction.data !== "string" ||
     typeof safeTransaction.safeTxHash !== "string" ||

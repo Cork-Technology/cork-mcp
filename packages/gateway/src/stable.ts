@@ -1,5 +1,9 @@
 import { type CredentialClaims } from "./controls.js";
-import { type ClosedInputSchema, type RouterCallResult } from "./router.js";
+import {
+  type ClosedInputSchema,
+  type JsonPropertySchema,
+  type RouterCallResult,
+} from "./router.js";
 
 export const STABLE_MCP_SDK_VERSION = "1.29.0" as const;
 export const STABLE_MCP_PROTOCOL_ERA = "2025-11-25" as const;
@@ -71,6 +75,14 @@ export interface StdioToolDefinition {
   readonly name: string;
   readonly description: string;
   readonly inputSchema: ClosedInputSchema;
+  readonly outputSchema?: JsonPropertySchema;
+  readonly annotations?: {
+    readonly title?: string;
+    readonly readOnlyHint?: boolean;
+    readonly destructiveHint?: boolean;
+    readonly idempotentHint?: boolean;
+    readonly openWorldHint?: boolean;
+  };
 }
 
 export interface StdioToolRouter {
@@ -84,15 +96,34 @@ export interface StdioToolRouter {
   }): Promise<RouterCallResult>;
 }
 
-function mcpTool(tool: StdioToolDefinition): {
-  readonly name: string;
-  readonly description: string;
-  readonly inputSchema: ClosedInputSchema;
-} {
+function mcpTool(tool: StdioToolDefinition): StdioToolDefinition {
   return {
     name: tool.name,
     description: tool.description,
     inputSchema: tool.inputSchema,
+    ...(tool.outputSchema === undefined
+      ? {}
+      : { outputSchema: tool.outputSchema }),
+    ...(tool.annotations === undefined
+      ? {}
+      : { annotations: tool.annotations }),
+  };
+}
+
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function errorPayload(result: Extract<RouterCallResult, { ok: false }>): {
+  readonly schemaVersion: "cork.tool-error/v1";
+  readonly error: {
+    readonly code: string;
+    readonly message: string;
+  };
+} {
+  return {
+    schemaVersion: "cork.tool-error/v1",
+    error: result.error,
   };
 }
 
@@ -125,8 +156,10 @@ export async function startStdioServer(input: {
               message: "tool name is required",
             },
           };
+    const payload = result.ok ? result.coreResult : errorPayload(result);
     return {
-      content: [{ type: "text", text: JSON.stringify(result) }],
+      content: [{ type: "text", text: JSON.stringify(payload) }],
+      ...(isRecord(payload) ? { structuredContent: payload } : {}),
       isError: !result.ok,
     };
   });

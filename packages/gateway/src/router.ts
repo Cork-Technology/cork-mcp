@@ -19,12 +19,16 @@ import {
 type JsonPrimitiveType = "string" | "number" | "boolean" | "object" | "array";
 
 export interface JsonPropertySchema {
-  readonly type: JsonPrimitiveType;
+  readonly type?: JsonPrimitiveType;
+  readonly const?: string | number | boolean;
   readonly enum?: readonly (string | number | boolean)[];
+  readonly pattern?: string;
+  readonly maxLength?: number;
   readonly items?: JsonPropertySchema;
   readonly properties?: Readonly<Record<string, JsonPropertySchema>>;
   readonly required?: readonly string[];
   readonly additionalProperties?: boolean;
+  readonly oneOf?: readonly JsonPropertySchema[];
 }
 
 export interface ClosedInputSchema {
@@ -32,6 +36,7 @@ export interface ClosedInputSchema {
   readonly additionalProperties: false;
   readonly properties: Readonly<Record<string, JsonPropertySchema>>;
   readonly required?: readonly string[];
+  readonly oneOf?: readonly JsonPropertySchema[];
 }
 
 export type HandlerKey =
@@ -494,6 +499,19 @@ function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
 }
 
 function matchesProperty(value: unknown, schema: JsonPropertySchema): boolean {
+  if (
+    schema.oneOf !== undefined &&
+    schema.oneOf.filter((candidate) => matchesProperty(value, candidate))
+      .length !== 1
+  ) {
+    return false;
+  }
+  if (schema.const !== undefined && value !== schema.const) {
+    return false;
+  }
+  if (schema.type === undefined) {
+    return true;
+  }
   if (schema.type === "array") {
     return (
       Array.isArray(value) &&
@@ -523,7 +541,19 @@ function matchesProperty(value: unknown, schema: JsonPropertySchema): boolean {
   if (typeof value !== schema.type) {
     return false;
   }
-  return schema.enum === undefined || schema.enum.includes(value as never);
+  if (
+    schema.maxLength !== undefined &&
+    (typeof value !== "string" || value.length > schema.maxLength)
+  ) {
+    return false;
+  }
+  if (schema.enum !== undefined && !schema.enum.includes(value as never)) {
+    return false;
+  }
+  return (
+    schema.pattern === undefined ||
+    (typeof value === "string" && new RegExp(schema.pattern, "u").test(value))
+  );
 }
 
 function validateInput(

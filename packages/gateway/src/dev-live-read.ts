@@ -17,12 +17,12 @@ API payloads remain untrusted source observations and are never executed.
 `;
 
 interface RouterEnvelope {
-  readonly ok?: unknown;
+  readonly state?: unknown;
   readonly error?: {
     readonly code?: unknown;
     readonly message?: unknown;
   };
-  readonly coreResult?: {
+  readonly data?: {
     readonly kind?: unknown;
     readonly failure?: {
       readonly code?: unknown;
@@ -147,12 +147,15 @@ function marketSnapshot(value: unknown, label: string): MarketSnapshot {
 }
 
 function summarize(envelope: RouterEnvelope, label: string): SuccessfulRead {
-  if (envelope.ok !== true || envelope.coreResult === undefined) {
+  if (envelope.state === "unavailable") {
+    return fail(`${label} returned an unavailable source observation`);
+  }
+  if (envelope.state !== "ok" || envelope.data === undefined) {
     return fail(
       `${label} failed (${String(envelope.error?.code)}): ${String(envelope.error?.message)}`,
     );
   }
-  const observation = envelope.coreResult;
+  const observation = envelope.data;
   if (observation.kind !== "success" || observation.value === undefined) {
     return fail(
       `${label} source observation failed (${String(observation.failure?.code)}): ${String(observation.failure?.message)}`,
@@ -223,12 +226,10 @@ if (args.includes("--help")) {
     await client.connect(transport);
     const tools = await client.listTools();
     const expectedTools = [
-      "cork.phoenix.pools.list.v1",
-      "cork.phoenix.poolWhitelists.list.v1",
-      "cork.phoenix.flows.list.v1",
-      "cork.phoenix.limitOrders.markets.list.v1",
-      "cork.phoenix.limitOrders.orderbook.list.v1",
-      "cork.phoenix.limitOrders.fills.list.v1",
+      "cork_query",
+      "cork_compute",
+      "cork_decode",
+      "cork_capabilities",
     ];
     for (const name of expectedTools) {
       if (!tools.tools.some((tool) => tool.name === name)) {
@@ -244,15 +245,19 @@ if (args.includes("--help")) {
     }
 
     const call = async (
-      name: string,
+      variant: string,
       argumentsValue: Readonly<Record<string, unknown>>,
       label: string,
     ): Promise<SuccessfulRead> =>
       summarize(
         JSON.parse(
           firstText(
-            (await client.callTool({ name, arguments: argumentsValue }))
-              .content,
+            (
+              await client.callTool({
+                name: "cork_query",
+                arguments: { variant, input: argumentsValue },
+              })
+            ).content,
           ),
         ) as RouterEnvelope,
         label,
@@ -260,18 +265,14 @@ if (args.includes("--help")) {
 
     const bounds = { maxPages: 3, maxItems: 500, limit: 200 } as const;
     const cutoff = new Date().toISOString();
-    const allPools = await call(
-      "cork.phoenix.pools.list.v1",
-      bounds,
-      "all pools",
-    );
+    const allPools = await call("phoenix-pools", bounds, "all pools");
     const currentPools = await call(
-      "cork.phoenix.pools.list.v1",
+      "phoenix-pools",
       { ...bounds, expiryAfter: cutoff },
       "current pools",
     );
     const pastPools = await call(
-      "cork.phoenix.pools.list.v1",
+      "phoenix-pools",
       { ...bounds, expiryBefore: cutoff },
       "past pools",
     );
@@ -291,27 +292,15 @@ if (args.includes("--help")) {
 
     const [flows, whitelists, orderMarkets, orderbook, fills] =
       await Promise.all([
-        call("cork.phoenix.flows.list.v1", { ...bounds, poolId }, "pool flows"),
+        call("phoenix-flows", { ...bounds, poolId }, "pool flows"),
         call(
-          "cork.phoenix.poolWhitelists.list.v1",
+          "phoenix-pool-whitelists",
           { ...bounds, poolId },
           "pool whitelists",
         ),
-        call(
-          "cork.phoenix.limitOrders.markets.list.v1",
-          bounds,
-          "limit-order markets",
-        ),
-        call(
-          "cork.phoenix.limitOrders.orderbook.list.v1",
-          bounds,
-          "limit-order orderbook",
-        ),
-        call(
-          "cork.phoenix.limitOrders.fills.list.v1",
-          bounds,
-          "limit-order fills",
-        ),
+        call("limit-order-markets", bounds, "limit-order markets"),
+        call("limit-order-orderbook", bounds, "limit-order orderbook"),
+        call("limit-order-fills", bounds, "limit-order fills"),
       ]);
 
     const summary = {

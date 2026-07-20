@@ -24,7 +24,15 @@ Run the included smoke client:
 npm run mcp:smoke
 ```
 
-The smoke client starts the compiled server through the official standard-input/output client transport, negotiates the protocol, lists tools, calls `cork.capabilities.v1`, lists local markets, constructs a sample Safe transaction, confirms it is fixture-only and non-broadcast, and shuts the child process down. A successful run prints the market, Safe transaction hash, target, nonce, and calldata size.
+The smoke client starts the compiled server through the official standard-input/output client transport, negotiates the protocol, discovers the nine family tools, calls `cork_capabilities`, lists local markets through `cork_query`, constructs a sample Safe transaction through `cork_prepare_phoenix`, confirms it is fixture-only and non-broadcast, and shuts the child process down. A successful run prints the market, Safe transaction hash, target, nonce, and calldata size.
+
+The same registry can be exercised without a Model Context Protocol client:
+
+```
+npm run cli --workspace @corkprotocol/gateway -- capabilities --pretty --quiet
+npm run cli --workspace @corkprotocol/gateway -- \
+  query fixture-markets --input '{}' --pretty --quiet
+```
 
 ## Construct local Safe transactions
 
@@ -143,8 +151,9 @@ to override the public fallback.
 
 ## Fixture behavior
 
-- The complete stable static tool catalog is discoverable, subject to the same scope, capability, closed-input, and bounded-work checks as the gateway.
-- Three additional `cork.local.*` tools exist only in the local fixture router. They cannot appear in the production static catalog.
+- The nine high-level family tools are the only public Model Context Protocol surface. Their discriminated schemas contain only variants callable through the current principal and runtime.
+- The complete granular static catalog remains behind the public router and retains its scope, capability, closed-input, cancellation, deadline, and bounded-work checks.
+- Three additional `cork.local.*` internal tools exist only in the local fixture router. They appear as fixture-only variants of `cork_query` and `cork_prepare_phoenix`, never as separate public tools or production variants.
 - The seven capped-input capability variants remain unavailable and undiscoverable.
 - Capability maturity uses deterministic local fixture identities and digests.
 - Stable hosted-tool handlers remain in-memory echoes. The local market-list and Safe-unwind handlers call the canonical Cork operation core and return deterministic fixture artifacts.

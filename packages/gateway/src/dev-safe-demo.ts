@@ -53,9 +53,9 @@ interface DemoOptions {
 }
 
 interface ToolCallEnvelope {
-  readonly ok?: unknown;
+  readonly state?: unknown;
   readonly error?: { readonly code?: unknown; readonly message?: unknown };
-  readonly coreResult?: {
+  readonly data?: {
     readonly fixtureOnly?: unknown;
     readonly broadcastReady?: unknown;
     readonly markets?: readonly {
@@ -194,10 +194,10 @@ function assertSuccessful(
   envelope: ToolCallEnvelope,
   operation: string,
 ): asserts envelope is ToolCallEnvelope & {
-  readonly ok: true;
-  readonly coreResult: NonNullable<ToolCallEnvelope["coreResult"]>;
+  readonly state: "ok";
+  readonly data: NonNullable<ToolCallEnvelope["data"]>;
 } {
-  if (envelope.ok !== true || envelope.coreResult === undefined) {
+  if (envelope.state !== "ok" || envelope.data === undefined) {
     const code = String(envelope.error?.code ?? "UNKNOWN");
     const message = String(envelope.error?.message ?? "no error message");
     fail(`${operation} failed (${code}): ${message}`);
@@ -228,13 +228,13 @@ if (parsed === "help") {
     const marketsEnvelope = parseEnvelope(
       (
         await client.callTool({
-          name: "cork.local.markets.list.v1",
-          arguments: {},
+          name: "cork_query",
+          arguments: { variant: "fixture-markets", input: {} },
         })
       ).content,
     );
     assertSuccessful(marketsEnvelope, "market listing");
-    const markets = marketsEnvelope.coreResult.markets;
+    const markets = marketsEnvelope.data.markets;
     if (markets === undefined || markets.length === 0) {
       fail("market listing returned no local fixture markets");
     }
@@ -253,16 +253,19 @@ if (parsed === "help") {
       const coverageEnvelope = parseEnvelope(
         (
           await client.callTool({
-            name: "cork.local.safe.coverage.v1",
+            name: "cork_prepare_phoenix",
             arguments: {
-              marketId: parsed.market,
-              baseSafeNonce: parsed.nonce,
+              variant: "fixture-safe-coverage",
+              input: {
+                marketId: parsed.market,
+                baseSafeNonce: parsed.nonce,
+              },
             },
           })
         ).content,
       );
       assertSuccessful(coverageEnvelope, "Safe action coverage preparation");
-      const result = coverageEnvelope.coreResult;
+      const result = coverageEnvelope.data;
       if (
         result.fixtureOnly !== true ||
         result.broadcastReady !== false ||
@@ -305,21 +308,24 @@ if (parsed === "help") {
       const preparedEnvelope = parseEnvelope(
         (
           await client.callTool({
-            name: "cork.local.safe.unwind.prepare.v1",
+            name: "cork_prepare_phoenix",
             arguments: {
-              marketId: parsed.market,
-              requestedSharesIn: parsed.shares,
-              minimumCollateralAssetsOut: parsed.minimumCollateral,
-              safeNonce: parsed.nonce,
-              ...(parsed.receiver === undefined
-                ? {}
-                : { receiver: parsed.receiver }),
+              variant: "fixture-safe-unwind",
+              input: {
+                marketId: parsed.market,
+                requestedSharesIn: parsed.shares,
+                minimumCollateralAssetsOut: parsed.minimumCollateral,
+                safeNonce: parsed.nonce,
+                ...(parsed.receiver === undefined
+                  ? {}
+                  : { receiver: parsed.receiver }),
+              },
             },
           })
         ).content,
       );
       assertSuccessful(preparedEnvelope, "Safe unwind preparation");
-      const result = preparedEnvelope.coreResult;
+      const result = preparedEnvelope.data;
       const transaction = result.safeTransaction;
       if (
         result.fixtureOnly !== true ||

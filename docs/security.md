@@ -92,7 +92,7 @@ The stable Model Context Protocol lane is pinned to software development kit `1.
 Hosted controls implement:
 
 - credential validation and bounded revocation caching;
-- static named tools and closed inputs;
+- a static nine-family public registry, statically mapped internal operations, and closed discriminated inputs;
 - per-principal and global weighted work limits;
 - first-party reserved capacity;
 - cancellation and deadlines;

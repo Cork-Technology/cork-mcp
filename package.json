@@ -16,6 +16,7 @@
   ],
   "scripts": {
     "check:runtime": "node --input-type=module -e \"const major = Number.parseInt(process.versions.node.split('.')[0], 10); if (major !== 22) { console.error('Node.js 22.x is required; received ' + process.versions.node); process.exit(1); }\"",
+    "check:bins": "test -x packages/gateway/dist/cli.js && test -x packages/gateway/dist/dev-server.js && ./node_modules/.bin/cork --version >/dev/null && ./node_modules/.bin/cork-mcp --version >/dev/null",
     "clean:dist": "rimraf packages/operations/dist packages/operations-node/dist packages/gateway/dist packages/conformance/dist",
     "clean": "npm run clean:dist && rimraf coverage dist build .turbo",
     "build": "npm run build --workspace @corkprotocol/operations && npm run build --workspace @corkprotocol/operations-node && npm run build --workspace @corkprotocol/gateway",
@@ -33,7 +34,7 @@
     "test:historical-mint": "forge test --root tools/fork --match-path test/LiveMarketMint.t.sol --fork-url \"${ARBITRUM_RPC_URL:-https://arbitrum-one.public.blastapi.io}\" --fork-block-number 482789214 --evm-version cancun -vv",
     "test:unit": "npm test --workspace @corkprotocol/operations && npm test --workspace @corkprotocol/operations-node && npm test --workspace @corkprotocol/gateway && npm test --workspace @corkprotocol/conformance",
     "test:boundaries": "npm run test:boundaries --workspaces --if-present",
-    "ci": "npm run check:runtime && npm run clean:dist && npm run format:check && npm run build && npm run lint && npm run typecheck && npm run test"
+    "ci": "npm run check:runtime && npm run clean:dist && npm run format:check && npm run build && npm run check:bins && npm run lint && npm run typecheck && npm run test"
   },
   "devDependencies": {
     "@types/node": "22.16.0",

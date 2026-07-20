@@ -5,12 +5,13 @@ import {
   LOCAL_FIXTURE_NOTICE,
 } from "./dev-fixture.js";
 import { createLocalLiveReadGateway, PHOENIX_API_ORIGIN } from "./live-read.js";
+import { PublicToolRouter } from "./public-tools.js";
 import { startStdioServer } from "./stable.js";
 
 const VERSION = "0.1.0";
-const HELP = `Cork local fixture Model Context Protocol server
+const HELP = `Cork Model Context Protocol server
 
-Usage: cork-mcp-dev [--live-read] [--quiet]
+Usage: cork-mcp [--live-read] [--quiet]
 
 Options:
   --live-read  Enable read-only requests to the public Phoenix API
@@ -70,7 +71,7 @@ async function main(): Promise<void> {
       })
     : createLocalFixtureGateway();
   await startStdioServer({
-    router: gateway.router,
+    router: new PublicToolRouter(gateway.router),
     principal: gateway.principal,
   });
 }

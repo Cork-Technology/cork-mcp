@@ -1,5 +1,7 @@
 export * from "./capability-catalog.js";
 export * from "./controls.js";
+export * from "./calldata.js";
+export * from "./public-tools.js";
 export * from "./release-candidate.js";
 export * from "./release-controller.js";
 export * from "./router.js";

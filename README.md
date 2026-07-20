@@ -1,6 +1,6 @@
 # Cork Model Context Protocol server
 
-`cork-mcp` gives agents and applications a typed interface to Cork Protocol market data and transaction construction.
+`cork-mcp` gives agents and applications one typed interface to Cork Protocol market data and transaction construction. The Model Context Protocol server and the `cork` command-line interface are generated from the same registry and dispatch through the same guarded operation layer.
 
 It exposes tools for:
 
@@ -13,6 +13,8 @@ It exposes tools for:
 - reporting which capabilities are currently callable.
 
 Read results preserve the upstream response bytes and label them as untrusted source observations. Write tools construct artifacts only. The server does not hold signing keys, confirm Safe transactions, or broadcast on behalf of the caller.
+
+The public surface is nine stable family tools: `cork_query`, `cork_compute`, `cork_decode`, `cork_capabilities`, `cork_prepare_phoenix`, `cork_prepare_orders`, `cork_prepare_market`, `cork_track`, and `cork_submit`. Granular `cork.*.v1` operations remain available as lower-level package and internal gateway interfaces, but they are no longer published as separate Model Context Protocol tools.
 
 ## Requirements
 
@@ -52,6 +54,23 @@ npm run mcp:smoke
 ```
 
 This starts the server over standard input/output, discovers its tools, and constructs a deterministic non-broadcast Safe transaction for a synthetic market.
+
+Inspect the same registry through the command-line interface:
+
+```
+npm run cli --workspace @corkprotocol/gateway -- capabilities --pretty --quiet
+```
+
+Run exact integer math through a typed command:
+
+```
+npm run cli --workspace @corkprotocol/gateway -- \
+  compute fixed-mul-div-floor \
+  --input '{"amount":"7","rate":"10","scale":"3"}' \
+  --pretty --quiet
+```
+
+The installed package provides `cork-mcp` and `cork` binaries. `cork call TOOL --input-file FILE` is the raw JSON path; typed commands such as `cork query VARIANT` and `cork prepare phoenix VARIANT` wrap the same registry entries.
 
 List the synthetic markets available to the Safe demo:
 
@@ -169,21 +188,25 @@ The process waits for a client on standard input/output. This is expected. Serve
 
 ## Tool behavior
 
-Every tool has a closed input schema: unknown fields are rejected. The gateway also enforces credential scopes, capability maturity, bounded work, cancellation, and deadlines before invoking a handler.
+Every tool and variant has a closed input schema: unknown fields are rejected. Variant-based tools accept `{ "variant": "...", "input": { ... } }`; `cork_capabilities` accepts an empty object. The gateway also enforces credential scopes, capability maturity, bounded work, cancellation, and deadlines before invoking an internal handler.
 
-The main tool groups are:
+The public tools are:
 
-| Group             | Examples                                                   | Effect                         |
-| ----------------- | ---------------------------------------------------------- | ------------------------------ |
-| Capabilities      | `cork.capabilities.v1`                                     | Read                           |
-| Phoenix data      | `cork.phoenix.pools.list.v1`, `cork.phoenix.flows.list.v1` | Read                           |
-| Limit orders      | market, orderbook, fill, maker, taker, cancellation tools  | Read or construct              |
-| Authority         | inspect, onboard preparation, revocation preparation       | Read or construct              |
-| Cork actions      | mint, unwind, repurchase, redeem lifecycles                | Construct, simulate, reconcile |
-| Market deployment | quote, prepare, simulate, reconcile                        | Construct, simulate, reconcile |
-| Local demos       | market list, Safe unwind, six-profile Safe coverage        | Fixture only                   |
+| Tool                   | Purpose                                                      |
+| ---------------------- | ------------------------------------------------------------ |
+| `cork_query`           | Phoenix, limit-order, authority, and supported fixture reads |
+| `cork_compute`         | Deterministic integer calculations                           |
+| `cork_decode`          | Bounded Bundler3 and Cork calldata decoding                  |
+| `cork_capabilities`    | Runtime-filtered tool and variant discovery                  |
+| `cork_prepare_phoenix` | Supported action and authority preparation lifecycles        |
+| `cork_prepare_orders`  | Limit-order maker, taker, cancellation, and revocation work  |
+| `cork_prepare_market`  | Market quote and deployment preparation                      |
+| `cork_track`           | Simulation and reconciliation                                |
+| `cork_submit`          | Idempotent submission of caller-signed limit orders          |
 
-A tool being discoverable does not mean that a production capability is active. `cork.capabilities.v1` is the source for the current callable state.
+Each successful call returns a `cork.tool-result/v1` envelope as both text and structured Model Context Protocol content. It contains the selected tool and variant, `ok`, `conflict`, or `unavailable` state, JSON-safe data, warnings, environment provenance, the delegated internal tool when applicable, and a canonical SHA-256 result digest.
+
+Only variants callable for the current principal and runtime appear in tool schemas. `cork_capabilities` is the source for the current public state. The seven capped-input actions remain explicitly omitted from callable variants.
 
 ## Safe boundary
 
@@ -193,12 +216,12 @@ For a real Safe proposal, the caller must supply current verified market evidenc
 
 ## Packages
 
-| Package                         | Purpose                                                                           |
-| ------------------------------- | --------------------------------------------------------------------------------- |
-| `@corkprotocol/operations`      | Browser-safe canonical encoders, validators, hashes, and operation state machines |
-| `@corkprotocol/operations-node` | Phoenix, Market Registry, provider, and inventory observation adapters            |
-| `@corkprotocol/gateway`         | Model Context Protocol transport, routing, controls, local server, and demos      |
-| `@corkprotocol/conformance`     | Cross-package and public-artifact conformance tests                               |
+| Package                         | Purpose                                                                                                      |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `@corkprotocol/operations`      | Browser-safe canonical encoders, validators, hashes, and operation state machines                            |
+| `@corkprotocol/operations-node` | Phoenix, Market Registry, provider, and inventory observation adapters                                       |
+| `@corkprotocol/gateway`         | Shared public registry, command-line interface, Model Context Protocol transport, guarded routing, and demos |
+| `@corkprotocol/conformance`     | Cross-package and public-artifact conformance tests                                                          |
 
 The Rust signing gate is under `crates/signing-gate` and remains independent from the TypeScript operation core.
 

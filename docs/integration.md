@@ -36,7 +36,9 @@ Do not import `packages/*/src` from an integrating application. Release qualific
 
 ## Stable hosted integration
 
-The stable adapter uses Model Context Protocol era `2025-11-25` and `@modelcontextprotocol/sdk` `1.29.0`. [`ToolRouter`](../packages/gateway/src/router.ts) exposes only static named tools, capability filtering, closed inputs, cancellation, deadlines, and weighted work admission. [`startStdioServer`](../packages/gateway/src/stable.ts) adapts that router to the official stable software development kit.
+The stable adapter uses Model Context Protocol era `2025-11-25` and `@modelcontextprotocol/sdk` `1.29.0`. [`ToolRouter`](../packages/gateway/src/router.ts) remains the granular internal boundary for static operation names, capability filtering, closed inputs, cancellation, deadlines, and weighted work admission. [`PublicToolRouter`](../packages/gateway/src/public-tools.ts) projects callable internal operations into nine high-level public families from one registry. [`startStdioServer`](../packages/gateway/src/stable.ts) publishes that projection through the official stable software development kit.
+
+The same registry supplies the `cork` command-line paths. Model Context Protocol and command-line calls therefore use the same variant identifiers, schemas, capability filtering, dispatcher, result envelopes, and canonical result digests. The public registry contains no arbitrary target name or generic proxy: every delegated variant is statically mapped to one guarded internal operation.
 
 An integrating deployment must inject:
 
@@ -53,20 +55,28 @@ For protocol exploration without production dependencies, [`docs/local-developme
 
 ### Canonical result and transport metadata
 
-A successful gateway call returns:
+A successful public Model Context Protocol or command-line call returns:
 
 ```
 {
-  ok: true,
-  toolName,
-  coreResult,
-  transportMetadata
+  schemaVersion: "cork.tool-result/v1",
+  tool,
+  variant,
+  state,
+  data,
+  warnings,
+  provenance: {
+    source,
+    environment,
+    targetTool,
+    resultDigest
+  }
 }
 ```
 
-`coreResult` is the canonical operation-core result. Under the complete identical-input tuple, direct and hosted lanes must preserve this result and any executable bytes exactly.
+`data` is the JSON-safe canonical operation-core result. Under the complete identical-input tuple, direct, Model Context Protocol, and command-line lanes must preserve this result and any executable bytes exactly. `resultDigest` is a SHA-256 digest of canonical JSON for `data`.
 
-`transportMetadata` contains hosted principal, environment, and scope information. It is not part of the canonical result, operation identity, or executable-byte digest. Authentication, quotas, timing, tracing, and redaction metadata must never change a core verdict.
+The internal router still returns separate principal, environment, and scope metadata to a composed host. The public envelope deliberately exposes only environment and source provenance. Authentication, quotas, timing, tracing, and redaction metadata must never change a core verdict.
 
 ## Release-candidate hosted integration
 
