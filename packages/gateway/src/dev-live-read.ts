@@ -1,6 +1,10 @@
 import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import {
+  assessLiveMintReadiness,
+  type LiveMintMarketSnapshot,
+} from "./live-mint-readiness.js";
 
 const HELP = `Cork live read-only integration test
 
@@ -60,16 +64,6 @@ interface SuccessfulRead {
   readonly items: readonly unknown[];
 }
 
-interface MarketSnapshot {
-  readonly poolId: string;
-  readonly poolName: string;
-  readonly chainId: number;
-  readonly expiry: string;
-  readonly isWhitelistEnabled: boolean;
-  readonly isDepositPaused: boolean;
-  readonly collateralSymbol: string;
-}
-
 function fail(message: string): never {
   throw new Error(message);
 }
@@ -120,7 +114,7 @@ function assertPoolPartition(
   }
 }
 
-function marketSnapshot(value: unknown, label: string): MarketSnapshot {
+function marketSnapshot(value: unknown, label: string): LiveMintMarketSnapshot {
   const pool = record(value);
   const collateral = record(pool?.["collateralToken"]);
   if (
@@ -284,6 +278,7 @@ if (args.includes("--help")) {
     const pastMarketSnapshot = pastPools.items.map((item) =>
       marketSnapshot(item, "past pool response"),
     );
+    const mintReadiness = assessLiveMintReadiness(currentMarketSnapshot);
     const firstPool = record(currentPools.items[0] ?? allPools.items[0]);
     const poolId = firstPool?.["poolId"];
     if (firstPool === undefined || typeof poolId !== "string") {
@@ -328,10 +323,12 @@ if (args.includes("--help")) {
         currentWithoutWhitelist: currentMarketSnapshot.filter(
           (market) => !market.isWhitelistEnabled,
         ),
+        currentMintEligible: mintReadiness.candidates,
         pastWithoutWhitelist: pastMarketSnapshot.filter(
           (market) => !market.isWhitelistEnabled,
         ),
       },
+      mintPreparation: mintReadiness,
       safety: {
         methods: ["GET"],
         writeToolsExposed: false,
@@ -347,6 +344,7 @@ if (args.includes("--help")) {
           `- ${name}: ${value.items} items, ${value.pages} page(s), HTTP ${value.statusCodes.join(",")}`,
       );
       const unwhitelisted = summary.markets.currentWithoutWhitelist;
+      const mintEligible = summary.markets.currentMintEligible;
       process.stdout.write(
         [
           "Cork live read-only integration test passed.",
@@ -360,6 +358,8 @@ if (args.includes("--help")) {
             (market) =>
               `  - ${market.poolName} (${market.poolId}, chain ${market.chainId})`,
           ),
+          `Current mint-eligible markets (current, unwhitelisted, deposits unpaused): ${mintEligible.length}`,
+          `Live mint preparation: ${summary.mintPreparation.preparationState} (${summary.mintPreparation.reason})`,
           "Safety: GET only; no write tools exposed; source data remained untrusted",
           "",
         ].join("\n"),
