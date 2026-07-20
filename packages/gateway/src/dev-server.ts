@@ -6,22 +6,25 @@ import {
 } from "./dev-fixture.js";
 import { createLocalLiveReadGateway, PHOENIX_API_ORIGIN } from "./live-read.js";
 import { PublicToolRouter } from "./public-tools.js";
+import { createSafeMarketPreviewGateway } from "./safe-market-mode.js";
 import { startStdioServer } from "./stable.js";
 
 const VERSION = "0.1.0";
 const HELP = `Cork Model Context Protocol server
 
-Usage: cork-mcp [--live-read] [--quiet]
+Usage: cork-mcp [--live-read | --safe-market-preview] [--quiet]
 
 Options:
   --live-read  Enable read-only requests to the public Phoenix API
+  --safe-market-preview  Build and fork-prove the immutable Arbitrum Safe package
   --quiet    Suppress the fixture warning on stderr
   --help     Print this help and exit
   --version  Print the server version and exit
 
-The server uses standard input/output. Without --live-read it is fully local.
+The server uses standard input/output. Without an explicit mode it is fully local.
 Live-read mode permits GET requests only to the configured public Phoenix API.
-Neither mode signs, confirms, submits, broadcasts, or persists transactions.
+Safe-market-preview reads two Arbitrum providers and writes unsigned Safe files.
+No mode signs, confirms, submits, or broadcasts transactions.
 `;
 
 function fail(message: string, exitCode: number): never {
@@ -50,26 +53,37 @@ async function main(): Promise<void> {
     return;
   }
   const unknown = args.filter(
-    (arg) => arg !== "--quiet" && arg !== "--live-read",
+    (arg) =>
+      arg !== "--quiet" &&
+      arg !== "--live-read" &&
+      arg !== "--safe-market-preview",
   );
   if (unknown.length > 0) {
     fail(`Unknown argument: ${unknown.join(", ")}`, 2);
   }
   requireSupportedRuntime();
   const liveRead = args.includes("--live-read");
+  const safeMarketPreview = args.includes("--safe-market-preview");
+  if (liveRead && safeMarketPreview) {
+    fail("--live-read and --safe-market-preview are mutually exclusive", 2);
+  }
   if (!args.includes("--quiet")) {
     process.stderr.write(
-      liveRead
-        ? `[cork-mcp] Live read-only mode: GET ${PHOENIX_API_ORIGIN}; responses remain untrusted source observations.\n`
-        : `[cork-mcp] ${LOCAL_FIXTURE_NOTICE}\n`,
+      safeMarketPreview
+        ? "[cork-mcp] Safe market preview mode: quorum reads and local fork proof only; no transaction will be signed or broadcast.\n"
+        : liveRead
+          ? `[cork-mcp] Live read-only mode: GET ${PHOENIX_API_ORIGIN}; responses remain untrusted source observations.\n`
+          : `[cork-mcp] ${LOCAL_FIXTURE_NOTICE}\n`,
     );
   }
-  const gateway = liveRead
-    ? createLocalLiveReadGateway({
-        fetch: (input, init) => fetch(input, init),
-        now: () => Date.now().toString(),
-      })
-    : createLocalFixtureGateway();
+  const gateway = safeMarketPreview
+    ? createSafeMarketPreviewGateway()
+    : liveRead
+      ? createLocalLiveReadGateway({
+          fetch: (input, init) => fetch(input, init),
+          now: () => Date.now().toString(),
+        })
+      : createLocalFixtureGateway();
   await startStdioServer({
     router: new PublicToolRouter(gateway.router),
     principal: gateway.principal,

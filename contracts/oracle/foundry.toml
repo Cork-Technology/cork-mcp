@@ -1,0 +1,20 @@
+[profile.default]
+src = "src"
+test = "test"
+out = "out"
+cache_path = "cache"
+libs = []
+
+solc = "/usr/local/bin/solc-0.8.30"
+auto_detect_solc = false
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 10_000
+via_ir = false
+
+bytecode_hash = "none"
+cbor_metadata = false
+use_literal_content = true
+
+ffi = false
+

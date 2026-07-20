@@ -20,14 +20,16 @@ The public surface is nine stable family tools: `cork_query`, `cork_compute`, `c
 
 - Node.js 22
 - npm 10.9
+- Foundry (`forge` and `anvil`) for oracle builds and fork proofs
 
 The packages are currently consumed from this repository rather than a public package release.
 
-The runnable server has two explicit modes: a no-network fixture mode for
-transaction construction tests and an opt-in live read-only mode for Phoenix
-market data. Production write activation requires operator-supplied evidence,
-policy, credentials, and chain infrastructure; it is not enabled by this
-repository alone.
+The runnable server defaults to a no-network fixture mode. It also has an
+opt-in live read-only mode for Phoenix market data and an explicit
+`--safe-market-preview` mode for the single immutable Arbitrum package described
+below. The preview mode constructs and proves unsigned files only. Production
+write activation still requires human review, Safe custody, and governance
+approval outside this repository.
 
 ## Install
 
@@ -177,6 +179,51 @@ Build once, then configure the client to start the server directly with Node.js 
 ```
 
 The default server is fixture-only and performs no network requests. Add `--live-read` before `--quiet` to enable the public read-only Phoenix tools.
+
+## Prepare the Arbitrum Safe market package
+
+The production-only preview command starts this repository's Model Context
+Protocol server, calls the `cork_prepare_market` tool through the standard input
+and output transport, and selects its typed `safe-package` profile:
+
+```
+ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc \
+ARBITRUM_RPC_URL_2=https://arbitrum-one.public.blastapi.io \
+npm run mcp:safe-market-preview
+```
+
+The defaults are the two endpoints shown above; set both variables when using
+operator-managed providers. The command requires two distinct providers,
+compiles the oracle with the pinned Solidity 0.8.30 Foundry settings, freezes
+state at the freshest block on which both providers agree, and fails closed on
+any critical disagreement or unsafe feed round. It then proves the exact two
+Builder transactions on a pinned local Anvil fork through the observed path:
+
+`Safe owner -> Safe -> TimelockController -> singleton CREATE2 factory/controller`
+
+Successful output is written to
+`artifacts/safe/susds-susde-liquidity-impairment/`:
+
+- `manifest.json` records quorum facts, compiler identity, oracle configuration,
+  market tuple and identifier, calldata hashes, governance posture, and proof
+  assertions;
+- `01-schedule.json` contains one raw TimelockController `scheduleBatch` Safe
+  transaction; and
+- `02-execute.json` contains one raw `executeBatch` transaction with the same
+  targets, values, payloads, predecessor, and operation salt.
+
+Import `01-schedule.json` into Safe Transaction Builder and review it against
+the manifest. Only after that operation is scheduled and ready should an
+authorized operator separately import and review `02-execute.json`. The files
+use raw calldata and need no application binary interface or hand editing.
+
+This command never holds a signing key, collects a Safe confirmation, submits to
+the Safe service, or broadcasts a production transaction. Its local fork
+impersonation is proof-only and is terminated after the assertions complete.
+The currently observed Safe is one owner with threshold one, while the
+production baseline is two owners out of three. Consequently every generated
+manifest is marked `mechanically-valid-governance-nonconforming` and
+`broadcastReady: false`; the warning is not permission to alter or use the Safe.
 
 Run the server manually when debugging a client connection:
 

@@ -28,6 +28,7 @@
     "dev": "node --enable-source-maps dist/dev-server.js",
     "live-read": "node --enable-source-maps dist/dev-live-read.js",
     "safe-demo": "node --enable-source-maps dist/dev-safe-demo.js",
+    "safe-market-preview": "node --enable-source-maps dist/dev-safe-market-preview.js",
     "smoke": "node --enable-source-maps dist/dev-smoke.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --no-cache",

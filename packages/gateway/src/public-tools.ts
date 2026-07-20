@@ -361,6 +361,7 @@ export const PUBLIC_TOOL_REGISTRY: readonly PublicToolRegistryEntry[] =
       variants: [
         delegated("quote", "cork.market.deploy.quote.v1"),
         delegated("prepare", "cork.market.deploy.prepare.v1"),
+        delegated("safe-package", "cork.safe.market.preview.prepare.v1"),
       ],
       annotations: {
         title: "Prepare Cork markets",
